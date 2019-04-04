@@ -8,6 +8,7 @@ true: -traverse, annot, bin_annot, color(always)
 <smt>: include
 <terms>: include
 <lustre>: include
+<nuXmv>: include
 <qe>: include
 <testgen>: include
 <induction>: include

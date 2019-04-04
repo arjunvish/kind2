@@ -30,6 +30,9 @@ type _ t
 exception UnsupportedFileFormat of string
 
 (** Read input from file *)
+val read_input_nuxmv : string -> NuxmvAst.t t
+
+(** Read input from file *)
 val read_input_lustre : string -> LustreNode.t t
 
 (** Translate lustre contracts to properties. *)
