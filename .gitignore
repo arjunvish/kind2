@@ -48,3 +48,4 @@ ocamlczmq/{include,lib}
 ocamlczmq/src/.libs
 ocamlczmq
 src/.DS_Store
+*.smt2

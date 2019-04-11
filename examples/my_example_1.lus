@@ -1,0 +1,17 @@
+-- Example from 1st tutorial of NuSmv tutorial with is_ready added using assume contract
+
+type state_type = enum {ready, busy, is_ready};
+
+node main (request:bool; artificial:state_type)
+returns (_state:state_type);
+
+(*@contract 
+assume artificial = is_ready or artificial = busy;
+*)
+
+let
+ _state = ready -> if pre _state = ready and request then busy else artificial;
+
+--%PROPERTY (_state = ready) -> (_state = busy or _state = is_ready);
+
+tel

@@ -1,0 +1,22 @@
+-- Binary Counter Example from NuSmv tutorial translated to equivalent Lustre
+
+
+node counter_cell (carry_in:bool) results (carry_out:bool);
+
+var value:bool;
+
+let
+value = false -> pre value xor carry_in;
+carry_out = value and carry_in;
+tel
+
+node main() results(bit0:bool; bit1:bool; bit2:bool);
+
+let
+bit0_carry_out = counter_cell(true);
+bit1_carry_out = counter_cell(bit0_carry_out);
+bit2 = counter_cell(bit1_carry_out);
+
+--%PROPERTY 
+
+tel

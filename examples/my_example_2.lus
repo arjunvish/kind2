@@ -1,0 +1,18 @@
+-- Example from 1st tutorial of NuSmv tutorial with is_ready added using imported node
+
+type state_type = enum {ready, busy, is_ready};
+
+node imported choose_state_type() returns (r: state_type);
+(*@contract 
+guarantee r = is_ready or r = busy;
+*)
+
+node main (request:bool)
+returns (_state:state_type);
+
+let
+ _state = ready -> if pre _state = ready and request then busy else choose_state_type();
+
+--%PROPERTY (_state = ready) -> (_state = busy or _state = is_ready);
+
+tel
