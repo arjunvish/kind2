@@ -1,0 +1,30 @@
+
+type ue_state_type = enum {ue_1, unknown_id, P_2, _1} ;
+
+
+node main(P_0:bool ; P_1:bool) returns(ue_state:ue_state_type) ;
+
+(*@contract
+guarantee ue_state = P_2 ;
+*)
+
+var ue_t1:bool ;
+var ue_t2:bool ;
+var ue_t3:bool ;
+var ue_t4:bool ;
+var ue_t5:bool ;
+
+let
+ue_t1 = (P_1) ;
+ue_t2 = (P_0) ;
+ue_t3 = (ue_state = ue_1) ;
+ue_t4 = (ue_state = _1) ;
+ue_t5 = (ue_state = P_2) ;
+
+assert (ue_state = unknown_id) 
+	-> (ue_state = if (ue_t1 or ue_t2 or ue_t3) then P_2 
+		       else (if (ue_t4 or ue_t5) then ue_1 
+	 	       else unknown_id )) ;
+
+tel
+

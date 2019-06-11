@@ -555,7 +555,7 @@ let run in_sys =
           ISys.trans_sys_of_analysis in_sys param
         in
 
-        (* Format.printf "%a" (TSys.pp_print_subsystems true) sys; *)
+        Format.printf "%a" (TSys.pp_print_subsystems true) sys;
 
         (* Should we run post analysis treatment? *)
         ( match !latest_trans_sys with
