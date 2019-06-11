@@ -92,6 +92,7 @@ let setup : unit -> any_input = fun () ->
     | `Lustre -> Input (InputSystem.read_input_lustre in_file)
     | `Native -> Input (InputSystem.read_input_native in_file)
     | `NuXmv -> Input (InputSystem.read_input_nuxmv in_file)
+    | `Vmt -> Input (InputSystem.read_input_nuxmv in_file)
     | `Horn   ->
       KEvent.log L_fatal "Horn clauses are not supported." ;
       KEvent.terminate_log () ;

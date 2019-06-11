@@ -1837,7 +1837,7 @@ module Global = struct
 
   (* Input format. *)
   type input_format = [
-    `Lustre | `Horn | `Native | `NuXmv | 'Vmt
+    `Lustre | `Horn | `Native | `NuXmv | `Vmt
   ]
   let input_format_of_string = function
     | "extension" -> `Extension
