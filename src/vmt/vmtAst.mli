@@ -19,34 +19,34 @@
 type ident = string
 
 type attribute = 
-    | NextName of ident
-    | InitTrue
-    | TransTrue
-    | InvarProperty of int
-    | LiveProperty of int
+    | NextName of Position.t * ident
+    | InitTrue of Position.t
+    | TransTrue of Position.t
+    | InvarProperty of Position.t * int
+    | LiveProperty of Position.t * int
 
 type term = 
-    | Ident of ident
-    | Numeral of int
-    | True
-    | False
-    | Operation of string * term list
-    | AttributeTerm of term * attribute
+    | Ident of Position.t * ident
+    | Numeral of Position.t * int
+    | True of Position.t
+    | False of Position.t
+    | Operation of Position.t * string * term list
+    | AttributeTerm of Position.t * term * attribute
 
 type sort = 
-    | Sort of string
-    | MultiSort of string * sort list
+    | Sort of Position.t * string
+    | MultiSort of Position.t * string * sort list
 
 type sorted_var = 
-    | SortedVar of ident * sort
+    | SortedVar of Position.t * ident * sort
 
 type vmt_expr = 
-    | DeclareFun of ident * sort list * sort
-    | DefineFun of ident * sorted_var list * sort * term
-    | DeclareSort of ident * int
-    | DefineSort of ident * ident list * sort
-    | SetLogic of ident
-    | SetOption of ident * attribute
-    | Assert of term
+    | DeclareFun of Position.t * ident * sort list * sort
+    | DefineFun of Position.t * ident * sorted_var list * sort * term
+    | DeclareSort of Position.t * ident * int
+    | DefineSort of Position.t * ident * ident list * sort
+    | SetLogic of Position.t * ident
+    | SetOption of Position.t * ident * attribute
+    | Assert of Position.t * term
 
 type t = vmt_expr list
