@@ -9,6 +9,7 @@ true: -traverse, annot, bin_annot, color(always)
 <terms>: include
 <lustre>: include
 <nuXmv>: include
+<vmt>: include
 <qe>: include
 <testgen>: include
 <induction>: include
