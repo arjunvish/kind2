@@ -16,7 +16,7 @@
 
 (** @author Daniel Larraz *)
 
-type output = VmtAst
+type output = VmtAst.t
 
 type parse_error =
   | UnexpectedChar of Position.t * char
@@ -26,4 +26,4 @@ val from_channel: in_channel -> (output, parse_error) result
 
 val from_file: string -> (output, parse_error) result
 
-val of_file : string -> NuxmvAst.t SubSystem.t
+val of_file : string -> VmtAst.t SubSystem.t

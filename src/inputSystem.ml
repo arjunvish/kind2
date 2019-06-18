@@ -562,7 +562,7 @@ fun sys top_scope target ->
   | NuXmv _ ->
     failwith "can't compile from nuxmv clause input: unsupported"
   | Vmt _ ->
-    Format.printf "can't compile from vmt clause input: unsupported"
+    failwith "can't compile from vmt clause input: unsupported"
 
 let contract_gen_param (type s): s t -> (Analysis.param * (Scope.t -> N.t)) =
 fun sys ->
@@ -587,7 +587,7 @@ fun sys ->
   | NuXmv _ ->
     failwith "can't compile from nuxmv clause input: unsupported"
   | Vmt _ ->
-    Format.printf "can't compile from vmt clause input: unsupported"
+    failwith "can't compile from vmt clause input: unsupported"
 
 (* 
    Local Variables:

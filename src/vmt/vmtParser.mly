@@ -36,11 +36,11 @@ let mk_pos = Position.create_position
 
 (* Priorities and associativity of operators, lowest first *)
 
-%start<unit> program
+%start<VmtAst.t> program
 
 %%
 
-program: el = nonempty_list( expression ) EOF                               { () }
+program: el = nonempty_list( expression ) EOF                               { el }
 
 expression: LPAREN e = expression_body RPAREN                               { e }
 
