@@ -14,7 +14,7 @@
 
 *)
 
-(* @author Andrew West*)
+(** @author Andrew West *)
 type ident = string
 
 type attribute = 

@@ -14,8 +14,7 @@
 
 *)
 
-(** @author Daniel Larraz
-    @author Andrew West *)
+(** @author Andrew West *)
 
 {
   module P = VmtParser

@@ -14,7 +14,7 @@
 
 *)
 
-(** @author Daniel Larraz *)
+(** @author Andrew West *)
 
 
 exception Unexpected_Char of char
