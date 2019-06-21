@@ -259,7 +259,14 @@ let trans_sys_of_analysis (type s) ?(preserve_sig = false)
 
   | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
 
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | Vmt (subsystem) -> (
+    let f = (
+    function analysis ->
+        VmtTransSys.trans_sys_of_vmt
+          ~preserve_sig ~slice_nodes subsystem analysis
+    )
+    in ()
+    ); raise (UnsupportedFileFormat "Vmt")
 
 
 
