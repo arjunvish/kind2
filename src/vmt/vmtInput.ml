@@ -14,7 +14,7 @@
 
 *)
 
-(** @author Daniel Larraz *)
+(** @author Andrew West *)
 
 type output = VmtAst.t
 
