@@ -19,6 +19,7 @@ open Lib
 
 module Ids = Lib.ReservedIds
 module A = Analysis
+module P = Property
 
 module Ast = VmtAst
 
@@ -32,21 +33,26 @@ let find_opt (func : ('a -> bool)) (lst: 'a list) : 'a option =
     try let ans = List.find func lst in Some ans
     with Not_found -> None
 
-let rec find_spec_exprs (expr_list : VmtAst.t) = 
+let rec find_spec_exprs expr_list svi_map = 
     let rec generate_full_expr (ref_list: (string * Ast.sort * Ast.term) list) (term: Ast.term) =
         match term with
         | Ast.Ident (pos, i) -> (
             let id_res = find_opt (fun x -> match x with (id,rt,t) when i = id -> true| _ -> false) ref_list in 
             match id_res with
-            | Some (id, _, t) -> generate_full_expr ref_list term
-            | None -> Ast.Ident(pos, i) |> generate_full_expr ref_list
+            | Some (id, _, t) -> generate_full_expr ref_list t
+            | None -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
         )
         | Ast.Operation (pos, op, tl) -> (
             let tl' = List.map (generate_full_expr ref_list) tl in
-            Ast.Operation (pos, op, tl')
+            (* TODO: Change the mk_and to be actually check the operation instead of assuming and *)
+            Term.mk_and tl'
         )
-        | Ast.AttributeTerm (pos, term, att) -> Ast.AttributeTerm (pos, generate_full_expr ref_list term, att)
-        | _ -> term
+        | Ast.AttributeTerm (pos, term, att) -> (
+            generate_full_expr ref_list term
+        )
+        | Ast.True _ -> Term.mk_true ()
+        | Ast.False _ -> Term.mk_false ()
+        | Ast.Numeral (_, num) -> Term.mk_num_of_int num
     in
     let ref_list = 
         filter_map 
@@ -58,7 +64,7 @@ let rec find_spec_exprs (expr_list : VmtAst.t) =
         let init_check x = 
             match x with 
             | (id, rt, Ast.AttributeTerm (pos, term', Ast.InitTrue _)) -> (
-                Some (id, rt, generate_full_expr ref_list term')
+                Some (id, generate_full_expr ref_list term')
             )
             | _ -> None
         in
@@ -69,43 +75,74 @@ let rec find_spec_exprs (expr_list : VmtAst.t) =
         let trans_check x = 
             match x with 
             | (id, rt, Ast.AttributeTerm (pos, term', Ast.TransTrue _)) -> (
-                Some (id, rt, generate_full_expr ref_list term')
+                Some (id, generate_full_expr ref_list term')
             )
             | _ -> None
         in
         filter_map trans_check ref_list |> List.hd
     in
 
-    let prop_exprs = 
-            let prop_check x = 
+    let properties = 
+        let prop_status = P.PropUnknown in
+        let prop_check x = 
             match x with 
-            | (id, rt, Ast.AttributeTerm (pos, term', Ast.LiveProperty (p, num))) -> (
-                Some (id, rt, Ast.AttributeTerm (pos, generate_full_expr ref_list term', Ast.LiveProperty (p, num)))
-            )
-            | (id, rt, Ast.AttributeTerm (pos, term', Ast.InvarProperty (p, num) )) -> (
-                Some (id, rt, Ast.AttributeTerm (pos, generate_full_expr ref_list term', Ast.InvarProperty (p, num)))
+            | (prop_name, rt, Ast.AttributeTerm (pos, term', Ast.InvarProperty (p, num) )) -> (
+                let lib_pos = pos_of_file_row_col (pos.fname, pos.line, pos.col) in
+                let prop_term = generate_full_expr ref_list term' in
+                let prop_source = P.PropAnnot (lib_pos) in
+                let return_prop = 
+                {   P.prop_name; 
+                    P.prop_source; 
+                    P.prop_term; 
+                    P.prop_status;  } 
+                in
+                Some (return_prop)
             )
             | _ -> None
         in
         filter_map prop_check ref_list
     in
-    init_expr, trans_expr, prop_exprs
+    init_expr, trans_expr, properties
 
-let determine_var (scope : Scope.t) (expr : Ast.vmt_expr): StateVar.t option =
+let determine_var scope next_vars expr: StateVar.t option =
     match expr with
     | Ast.DeclareFun (pos, ident, [], sort) ->
     (
-        let _type = Type.mk_bool () in (* Default making all variables a bool will specify types later in ast*)
-        let state_var = StateVar.mk_state_var ident scope _type in
-        Some state_var
+        let is_next = List.find_opt (fun x -> if fst x = ident then true else false) next_vars in
+        match is_next with
+        | Some (next_id, prev_id) -> None
+        | None -> (
+            let _type = Type.mk_bool () in (* TODO: change this to correct type, Default making all variables a bool will specify types later in ast*)
+            let state_var = StateVar.mk_state_var ident scope _type in
+            Some state_var
+        )
     )
     | _ -> None
+
+let determine_next expr : (string * string) option =
+    match expr with
+    | Ast.DefineFun (pos, ident, [], sort, AttributeTerm (_, Ident (_, prev_id), NextName (_, next_id))) ->
+    (
+        Some (next_id, prev_id)
+    )
+    | _ -> None
+
+let create_map_instances_and_vars expr_list scope =
+    let next_vars = expr_list |> filter_map (determine_next) in
+    let state_vars = expr_list |> filter_map (determine_var scope next_vars) in
+    let state_var_instance_map = (
+        List.map (fun x -> (StateVar.name_of_state_var x, Var.mk_state_var_instance x Numeral.zero)) state_vars
+        @ List.map (fun x -> (fst x, Var.mk_state_var_instance (List.find (fun y -> snd x = StateVar.name_of_state_var y) state_vars) Numeral.one)) next_vars
+    )
+    in
+    state_vars, state_var_instance_map
+    
 
 let trans_sys_of_vmt 
     ?(preserve_sig = false)
     ?(slice_nodes = true)
     subsystem analysis_param
-    : unit (* TransSys.t * VmtAst.t SubSystem.t *) =
+    =
 
     let expr_list = 
         SubSystem.all_subsystems subsystem
@@ -113,13 +150,79 @@ let trans_sys_of_vmt
         |> List.hd
     in
 
-    let init_expr, trans_expr, prop_exprs = find_spec_exprs expr_list in
+    let scope = ["Main"] in (* TODO: determine how to get the name for the scope *)
 
-    let scope = ["TEST"] in (* Wait to determine how to get the name for the scope *)
+    let state_vars, svi_map = create_map_instances_and_vars expr_list scope in
 
-    let state_vars = expr_list |> filter_map (determine_var scope) in
+    let init_expr, trans_expr, properties = find_spec_exprs expr_list svi_map in
+    let init_term : Term.t = snd init_expr in
+    let trans_term : Term.t = snd trans_expr in
+              (* Filter assumptions for this node's assumptions *)
+    let node_assumptions =
+        (* No assumptions if abstract. *)
+        if A.param_scope_is_abstract analysis_param scope then
+            Invs.empty ()
+        else
+            A.param_assumptions_of_scope analysis_param scope
+    in
+    let valid_prop_terms =
+        List.fold_left
+            (fun acc ({ P.prop_term } as p) ->
+                match Invs.find node_assumptions prop_term with
+                | None -> acc
+                | Some cert -> (
+                    P.set_prop_invariant p cert; (* Set property valid *)
+                    prop_term :: acc
+                )
+            )
+            [] 
+            properties
+    in
 
-    let init_flag = () in
+    let init_flag = StateVar.mk_init_flag ["main_init_flag"] in
+
+    let init_term = 
+        Term.mk_let 
+            [(Var.mk_state_var_instance init_flag TransSys.init_base, Term.mk_true ())] 
+            init_term 
+    in
+
+    let trans_term = 
+        Term.mk_let 
+            [(Var.mk_state_var_instance init_flag TransSys.trans_base, Term.mk_false ())] 
+            trans_term 
+    in
+
+    let init_terms, trans_terms =
+        (* Iterate over each valid property term *)
+        List.fold_left
+        (fun
+            (init_terms, trans_terms) prop_term ->
+
+            (* Bump term to offset of initial state constraint *)
+            let prop_term_init =
+                Term.bump_state
+                Numeral.(TransSys.init_base - TransSys.prop_base)
+                (Term.mk_implies [prop_term])
+            in
+
+            (* Bump term to offset of transition relation *)
+            let prop_term_trans =
+                Term.bump_state
+                Numeral.(TransSys.trans_base - TransSys.prop_base)
+                (Term.mk_implies [prop_term])
+            in
+
+            (* Add property as assertion *)
+            (prop_term_init :: init_terms,
+                prop_term_trans :: trans_terms)
+            )
+
+            ([init_term], [trans_term])
+
+        valid_prop_terms
+
+    in
 
     (* Only one set of variables in the Vmt program and all are treated as output *)
     let init_formals = 
@@ -139,8 +242,6 @@ let trans_sys_of_vmt
             (List.map Var.type_of_var init_formals)
             Type.t_bool
     in
-
-    let init_terms = () in
 
     (* Create instances of state variables in signature *)
     let trans_formals = 
@@ -172,10 +273,6 @@ let trans_sys_of_vmt
             Type.t_bool
     in
 
-    let trans_terms = () in
-
-    let properties = [] in
-
     (* let trans_sys = 
         TransSys.mk_trans_sys 
             scope
@@ -196,7 +293,5 @@ let trans_sys_of_vmt
             properties
             [] (* mode_requires *)
             Invs.empty (* invariants *)
-    in
-    trans_sys *)
+    in *)
     ()
-    
