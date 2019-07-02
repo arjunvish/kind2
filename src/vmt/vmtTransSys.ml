@@ -213,15 +213,14 @@ let trans_sys_of_vmt
                 (Term.mk_implies [prop_term])
             in
 
-            (* Add property as assertion *)
-            (prop_term_init :: init_terms,
+                (* Add property as assertion *)
+                (prop_term_init :: init_terms,
                 prop_term_trans :: trans_terms)
             )
 
             ([init_term], [trans_term])
 
         valid_prop_terms
-
     in
 
     (* Only one set of variables in the Vmt program and all are treated as output *)
@@ -273,6 +272,11 @@ let trans_sys_of_vmt
             Type.t_bool
     in
 
+    let state_var_bounds : ((LustreExpr.expr LustreExpr.bound_or_fixed list) StateVar.StateVarHashtbl.t)
+         = 
+            let test : ((LustreExpr.expr LustreExpr.bound_or_fixed) list) = [] in
+            StateVar.StateVarHashtbl
+    in 
     (* let trans_sys = 
         TransSys.mk_trans_sys 
             scope
