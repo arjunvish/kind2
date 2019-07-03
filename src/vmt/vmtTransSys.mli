@@ -20,4 +20,4 @@ val trans_sys_of_vmt :
     ?preserve_sig:bool ->
     ?slice_nodes:bool -> 
     VmtAst.t SubSystem.t-> Analysis.param ->
-    unit (* TransSys.t * VmtAst.t SubSystem.t *)
+    TransSys.t * VmtAst.t SubSystem.t

@@ -275,16 +275,16 @@ let trans_sys_of_vmt
     let state_var_bounds : ((LustreExpr.expr LustreExpr.bound_or_fixed list) StateVar.StateVarHashtbl.t)
          = 
             let test : ((LustreExpr.expr LustreExpr.bound_or_fixed) list) = [] in
-            StateVar.StateVarHashtbl
+            StateVar.StateVarHashtbl.create 0
     in 
-    (* let trans_sys = 
+    let trans_sys, _ = 
         TransSys.mk_trans_sys 
             scope
             None (* No instance variables *)
             init_flag
             [] (* global_state_vars *)
             state_vars
-            [] (* state_var_bounds *)
+            (StateVar.StateVarHashtbl.create 0) (* state_var_bounds *)
             [] (* Global Const *)
             [] (* UFS *)
             init_uf_symbol
@@ -295,7 +295,7 @@ let trans_sys_of_vmt
             (Term.mk_and trans_terms)
             [] (* Subsystems *)
             properties
-            [] (* mode_requires *)
-            Invs.empty (* invariants *)
-    in *)
-    ()
+            (None, []) (* mode_requires *)
+            (Invs.empty ()) (* invariants *)
+    in
+    trans_sys, subsystem
