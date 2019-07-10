@@ -162,7 +162,7 @@ let determine_var scope next_vars expr: StateVar.t option =
 
 let determine_next expr : (string * string) option =
     match expr with
-    | Ast.DefineFun (pos, ident, [], sort, AttributeTerm (_, Ident (_, prev_id), prop_list)) -> (  
+    | Ast.DefineFun (pos, ident, [], sort, Ast.AttributeTerm (_, Ast.Ident (_, prev_id), prop_list)) -> (  
         let find_next = fun x -> match x with Ast.NextName (_, next_id) -> Some next_id | _ -> None in
             match filter_map find_next prop_list with
             | [] -> None

@@ -249,17 +249,17 @@ and s_eval_expr_type (expr_type: A.expr_type) : semantic_error_type check_result
 
 and s_eval_complex_id (ci: A.comp_ident):  semantic_error_type check_result =
     match ci with
-    | CIdent _ -> CheckOk
-    | PerIdent _ -> CheckOk
+    | A.CIdent _ -> CheckOk
+    | A.PerIdent _ -> CheckOk
 
 let rec s_eval_state_var_decl (svdl: A.state_var_decl list) :  semantic_error_type check_result =
     match svdl with
     | [] -> CheckOk
     | svd :: t -> 
         match svd with
-        | ModuleType (p, i, mts) -> (
+        | A.ModuleType (p, i, mts) -> (
             match mts with 
-            | ModuleTypeSpecifier (pos, id, etl) -> (
+            | A.ModuleTypeSpecifier (pos, id, etl) -> (
                 let mapped = List.map s_eval_expr_type etl in
                 let result = find_opt (fun x -> x != CheckOk) mapped in
                 match result with
@@ -318,7 +318,7 @@ let enum_contains_value (enum_type_list: (string * nuxmv_ast_type) list ) (id : 
 
 let rec t_eval_complex_id (in_enum : (bool * env)) (env : env) (ci: A.comp_ident):  (nuxmv_ast_type, type_error) result =
     match ci with
-    | CIdent (pos, id) -> ( 
+    | A.CIdent (pos, id) -> ( 
         if fst in_enum 
         then
             match enum_contains_value (snd in_enum) id pos with
@@ -330,7 +330,7 @@ let rec t_eval_complex_id (in_enum : (bool * env)) (env : env) (ci: A.comp_ident
             | Some (s,t) -> Ok t 
             | None -> Error (MissingVariable (pos, id))
     )
-    | PerIdent (pos, cid, id) -> (
+    | A.PerIdent (pos, cid, id) -> (
         let mi = t_eval_complex_id in_enum env cid in
         match mi with 
         | Ok (ModuleInstance (mod_name, mod_env) ) -> (
@@ -346,7 +346,7 @@ let rec t_eval_expr (in_enum : (bool * env)) (env : env) (expr: A.nuxmv_expr)  :
     match expr with
     | A.True _ -> Ok BoolT
     | A.False _ -> Ok BoolT
-    | A.CInt (pos, i) -> if fst in_enum then t_eval_expr in_enum env (A.Ident (pos, CIdent( pos, string_of_int i))) else Ok IntT
+    | A.CInt (pos, i) -> if fst in_enum then t_eval_expr in_enum env (A.Ident (pos, A.CIdent( pos, string_of_int i))) else Ok IntT
     | A.CFloat _ -> Ok FloatT
     | A.Ident (p, ci) -> t_eval_complex_id in_enum env ci
     | A.CRange (p, i1, i2) -> Ok IntT (*TODO: ask Daniel if changing Ranges to Ints make sense for type checking purposes *)

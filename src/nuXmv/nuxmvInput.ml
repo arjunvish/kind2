@@ -42,25 +42,25 @@ let parse_buffer lexbuf : (output, parse_error) result =
   try
     let abstract_syntax = NuxmvParser.program NuxmvLexer.token lexbuf in
         match NuxmvChecker.semantic_eval abstract_syntax with
-        | NuxmvChecker.CheckError (LtlUse pos )-> Error (LtlUseError pos)
-        | NuxmvChecker.CheckError (NextExpr pos ) -> Error (NextExprError pos)
-        | NuxmvChecker.CheckError (DoubleNextExpr pos ) -> Error (DoubleNextExprError pos)
-        | NuxmvChecker.CheckError (RangeLowerValue pos ) -> Error (RangeLowerValueError pos)
+        | NuxmvChecker.CheckError (NuxmvChecker.LtlUse pos )-> Error (LtlUseError pos)
+        | NuxmvChecker.CheckError (NuxmvChecker.NextExpr pos ) -> Error (NextExprError pos)
+        | NuxmvChecker.CheckError (NuxmvChecker.DoubleNextExpr pos ) -> Error (DoubleNextExprError pos)
+        | NuxmvChecker.CheckError (NuxmvChecker.RangeLowerValue pos ) -> Error (RangeLowerValueError pos)
         | NuxmvChecker.CheckOk -> (
           let type_res = NuxmvChecker.type_eval abstract_syntax in 
             match type_res with
-            | Error (Expected (pos, _, _ )) -> Error (ExpectedTypeError pos)
-            | Error (NonMatching (pos, _, _) ) -> Error (NonMatchingTypeError pos)
-            | Error (MissingVariable (pos, _) ) -> Error (MissingVariableError pos)
-            | Error (VariableAlreadyDefined (pos, _) ) -> Error (VariableAlreadyDefinedError pos)
-            | Error (EnumValueExist (pos, _) ) -> Error (EnumValueExistenceError pos)
-            | Error (EnumNotContain (pos, _) ) -> Error (EnumNotContainValue pos)
-            | Error (MainError pos )-> Error (MainModuleMissing pos)
-            | Error (MissingModule (pos, _) ) -> Error (MissingModule pos)
-            | Error (ModuleCallTooMany (pos, _, _) ) -> Error (ModuleCalledTooManyArgs pos)
-            | Error (ModuleCallMissing (pos, _, _) ) -> Error (ModuleCalledMissingArgs pos)
-            | Error (AccessOperatorAppliedToNonModule pos)  -> Error (AccessOperatorAppliedToNonModule pos)
-            | Error (MainModuleHasParams pos ) -> Error (MainModuleHasParams pos)
+            | Error (NuxmvChecker.Expected (pos, _, _ )) -> Error (ExpectedTypeError pos)
+            | Error (NuxmvChecker.NonMatching (pos, _, _) ) -> Error (NonMatchingTypeError pos)
+            | Error (NuxmvChecker.MissingVariable (pos, _) ) -> Error (MissingVariableError pos)
+            | Error (NuxmvChecker.VariableAlreadyDefined (pos, _) ) -> Error (VariableAlreadyDefinedError pos)
+            | Error (NuxmvChecker.EnumValueExist (pos, _) ) -> Error (EnumValueExistenceError pos)
+            | Error (NuxmvChecker.EnumNotContain (pos, _) ) -> Error (EnumNotContainValue pos)
+            | Error (NuxmvChecker.MainError pos )-> Error (MainModuleMissing pos)
+            | Error (NuxmvChecker.MissingModule (pos, _) ) -> Error (MissingModule pos)
+            | Error (NuxmvChecker.ModuleCallTooMany (pos, _, _) ) -> Error (ModuleCalledTooManyArgs pos)
+            | Error (NuxmvChecker.ModuleCallMissing (pos, _, _) ) -> Error (ModuleCalledMissingArgs pos)
+            | Error (NuxmvChecker.AccessOperatorAppliedToNonModule pos)  -> Error (AccessOperatorAppliedToNonModule pos)
+            | Error (NuxmvChecker.MainModuleHasParams pos ) -> Error (MainModuleHasParams pos)
             | Ok env -> Ok (abstract_syntax) 
           )
   with 
