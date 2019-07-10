@@ -50,6 +50,8 @@ let rec generate_full_expr ref_list svi_map term =
         | "and" -> Term.mk_and tl'
         | "xor" -> Term.mk_xor tl'
         | "to_real" -> Term.mk_to_real (List.hd tl')
+        | "to_int" -> Term.mk_to_int (List.hd tl')
+        | "is_int" -> Term.mk_is_int (List.hd tl')
         | "=" -> Term.mk_eq tl'
         | "<=" -> Term.mk_leq tl'
         | "<" -> Term.mk_lt tl'
@@ -58,8 +60,8 @@ let rec generate_full_expr ref_list svi_map term =
         | "-" -> Term.mk_minus tl'
         | "+" -> Term.mk_plus tl'
         | "*" -> Term.mk_times tl'
-        | "/" -> Term.mk_div tl'
-        | "//" -> Term.mk_intdiv tl'
+        | "//" -> Term.mk_div tl'
+        | "/" -> Term.mk_intdiv tl'
         | "mod" -> (
             match tl' with
             | term1 :: term2 :: [] -> Term.mk_mod term1 term2
