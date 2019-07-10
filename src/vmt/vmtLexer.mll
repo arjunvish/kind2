@@ -14,7 +14,8 @@
 
 *)
 
-(** @author Andrew West *)
+(** @author Daniel Larraz
+    @author Andrew West *)
 
 {
   module P = VmtParser
@@ -74,7 +75,8 @@ rule token = parse
   (* Constants *)
   | "true"            { P.TRUE }
   | "false"           { P.FALSE }
-  | numeral as num    { P.NUM (int_of_string (num)) }
+  | numeral as int    { P.INT (int_of_string (int)) }
+  | decimal as real   { P.REAL (float_of_string (real)) }
   | identifier as id  { P.ID id }
 
   (* Whitespace and New Line (both ignored) *)

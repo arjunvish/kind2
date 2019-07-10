@@ -14,7 +14,7 @@
 
 *)
 
-(** @author Andrew West *)
+(* @author Andrew West*)
 type ident = string
 
 type attribute = 
@@ -26,11 +26,12 @@ type attribute =
 
 type term = 
     | Ident of Position.t * ident
-    | Numeral of Position.t * int
+    | Integer of Position.t * int
+    | Real of Position.t * float
     | True of Position.t
     | False of Position.t
     | Operation of Position.t * string * term list
-    | AttributeTerm of Position.t * term * attribute
+    | AttributeTerm of Position.t * term * attribute list
 
 type sort = 
     | Sort of Position.t * string
