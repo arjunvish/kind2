@@ -45,6 +45,7 @@ rule token = parse
   | "DEFINE"           { P.DEFINE }
   | "ASSIGN"           { P.ASSIGN }
   | "TRANS"            { P.TRANS }
+  | "INVARSPEC"        { P.INVAR }
   | "LTLSPEC"          { P.LTLSPEC }
  (* | "self"             { P.SELF } *)
   | "init"             { P.INIT }
@@ -67,7 +68,7 @@ rule token = parse
   | "real"             { P.REAL }
   | "TRUE"             { P.TRUE }
   | "FALSE"            { P.FALSE }
-  (*| '.'                { P.PERIOD } *)
+  | '.'                { P.PERIOD }
   | '?'                { P.THEN }
   | ".."               { P.DPERIOD }
   | ';'                { P.SEMICOLON }

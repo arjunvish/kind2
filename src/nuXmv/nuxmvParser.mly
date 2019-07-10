@@ -26,7 +26,7 @@ exception Ltl_Use_Error
 %}
 
 
-%token MODULE VAR DEFINE ASSIGN TRANS LTLSPEC
+%token MODULE VAR DEFINE ASSIGN TRANS INVAR LTLSPEC
 %token X G F U V Y Z H O S T
 %token <string> ID
 %token <int> CINT
@@ -42,7 +42,7 @@ exception Ltl_Use_Error
 (* %token SELF *)
 %token ASSIGNMENT
 %token LPAREN RPAREN LCURLBRACK RCURLBRACK LSQBRACK RSQBRACK
-%token COMMA SEMICOLON COLON (*PERIOD*) DPERIOD
+%token COMMA SEMICOLON COLON PERIOD DPERIOD
 %token EOF
 
 (* Priorities and associativity of operators, lowest first *)
@@ -78,6 +78,7 @@ module_element:
  | dd = define_declaration { dd }
  | ac = assign_constraint { ac }
  | tc = trans_constraint { tc }
+ | ivs = invar_specification { ivs }
  | ltls = ltl_specification { ltls }
  
 
@@ -127,20 +128,18 @@ assign_constraint: ASSIGN ael = nonempty_list(assign_element) { A.AssignConst (m
     ;
 
 assign_element:
-    | INIT LPAREN ci = complex_indentifier RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.InitAssign (mk_pos $startpos, ci, e) }
-    | NEXT LPAREN ci = complex_indentifier RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.NextAssign (mk_pos $startpos, ci, e) }
-    | ci = complex_indentifier ASSIGNMENT e = next_expr { A.Assign (mk_pos $startpos, ci, e) }
+    | INIT LPAREN id = ID RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.InitAssign (mk_pos $startpos, id, e) }
+    | NEXT LPAREN id = ID RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.NextAssign (mk_pos $startpos, id, e) }
+    | id = ID ASSIGNMENT e = next_expr { A.Assign (mk_pos $startpos, id, e) }
     ;
 
-complex_indentifier:
-    | i = ID { A.CIdent (mk_pos $startpos, i) }
-(*   | ci = complex_indentifier PERIOD i = ID { A.PerIdent (mk_pos $startpos, ci, i) }
-    | ci = complex_indentifier LSQBRACK e = simple_expr RSQBRACK { BrackIdent (mk_pos $startpos, ci, e) }
-    | SELF { A.Self (mk_pos $startpos) } *)
-    ;
 
 (* Trans Constraints *)
 trans_constraint: TRANS e = next_expr option(SEMICOLON) { A.TransConst (mk_pos $startpos, e) } 
+    ;
+
+(* Invar Specifications *)
+invar_specification: INVAR e = invar_expr SEMICOLON { A.InvarSpec (mk_pos $startpos, e) }
     ;
 
 (* LTL Specifications *)
@@ -148,6 +147,10 @@ ltl_specification: LTLSPEC le = ltl_expr option(SEMICOLON) { A.LtlSpec (mk_pos $
     ;
 
 (* Expression Types *)
+%inline invar_expr:
+    | e = expr { A.InvarExpr(mk_pos $startpos, e) }
+    ;
+
 %inline ltl_expr:
     | e = expr { A.LtlExpr(mk_pos $startpos, e) }
     ;
@@ -160,10 +163,20 @@ ltl_specification: LTLSPEC le = ltl_expr option(SEMICOLON) { A.LtlSpec (mk_pos $
     | b = expr { A.NextExpr(mk_pos $startpos, b) }
     ;
 
+
+complex_indentifier:
+    | i = ID { A.CIdent (mk_pos $startpos, i) }
+    | ci = complex_indentifier PERIOD i = ID { A.PerIdent (mk_pos $startpos, ci, i) }
+    (* 
+        | ci = complex_indentifier LSQBRACK e = simple_expr RSQBRACK { BrackIdent (mk_pos $startpos, ci, e) }
+        | SELF { A.Self (mk_pos $startpos) } 
+    *)
+    ;
+
 (* General Purpose Rules *)
 expr:
     | c = constant { c }
-    | f = function_call { f }
+    (* | f = function_call { f } *)
     | NOT e = expr { A.Not (mk_pos $startpos, e) }
     | e1 = expr AND e2 = expr { A.And (mk_pos $startpos, e1, e2) }
     | e1 = expr OR e2 = expr { A.Or (mk_pos $startpos, e1, e2) }
@@ -209,14 +222,14 @@ case_element:
     | e1 = expr COLON e2 = expr SEMICOLON { (e1, e2) }
     ;
 
-function_call: 
+(* function_call: 
     | ci = complex_indentifier LPAREN el = function_call_params RPAREN { A.Call (mk_pos $startpos, ci, el) }
     ;
 
 function_call_params:
     | e = expr { [e] }
     | e = expr COMMA p = function_call_params  {e :: p}
-    ;
+    ; *)
 
 basic_expr_list:
     | el = separated_nonempty_list(COMMA, simple_expr) { el }
@@ -230,7 +243,7 @@ array_expr:
 constant:
     | FALSE { A.False (mk_pos $startpos) }
     | TRUE { A.True (mk_pos $startpos) }
-    | s = ID { A.Ident (mk_pos $startpos, s) }
+    | ci = complex_indentifier { A.Ident (mk_pos $startpos, ci) }
     | i = CINT { A.CInt (mk_pos $startpos, i) }
     | r = CREAL { A.CFloat (mk_pos $startpos, r) }
     | FRACTIONAL c1 = CINT DIV c2 = CINT { let f1 = float_of_int (c1) in

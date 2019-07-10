@@ -31,6 +31,12 @@ type parse_error =
   | VariableAlreadyDefinedError of Position.t (* *nuxmv_ast_type * nuxmv_ast_type *)
   | EnumValueExistenceError of Position.t (* *string *)
   | EnumNotContainValue of Position.t (* * string *)
+  | MainModuleMissing of Position.t
+  | MissingModule of Position.t (* * string *)
+  | ModuleCalledTooManyArgs of Position.t (* * int * int *)
+  | ModuleCalledMissingArgs of Position.t (* * int * int *)
+  | AccessOperatorAppliedToNonModule of Position.t
+  | MainModuleHasParams of Position.t
 
 let parse_buffer lexbuf : (output, parse_error) result =
   try
@@ -43,13 +49,19 @@ let parse_buffer lexbuf : (output, parse_error) result =
         | NuxmvChecker.CheckOk -> (
           let type_res = NuxmvChecker.type_eval abstract_syntax in 
             match type_res with
-            | NuxmvChecker.CheckError (Expected (pos, _, _ )) -> Error (ExpectedTypeError pos)
-            | NuxmvChecker.CheckError (NonMatching (pos, _, _) ) -> Error (NonMatchingTypeError pos)
-            | NuxmvChecker.CheckError (MissingVariable (pos, _) ) -> Error (MissingVariableError pos)
-            | NuxmvChecker.CheckError (VariableAlreadyDefined (pos, _) ) -> Error (VariableAlreadyDefinedError pos)
-            | NuxmvChecker.CheckError (EnumValueExist (pos, _) ) -> Error (EnumValueExistenceError pos)
-            | NuxmvChecker.CheckError (EnumNotContain (pos, _) ) -> Error (EnumNotContainValue pos)
-            | NuxmvChecker.CheckOk -> Ok (abstract_syntax) 
+            | Error (Expected (pos, _, _ )) -> Error (ExpectedTypeError pos)
+            | Error (NonMatching (pos, _, _) ) -> Error (NonMatchingTypeError pos)
+            | Error (MissingVariable (pos, _) ) -> Error (MissingVariableError pos)
+            | Error (VariableAlreadyDefined (pos, _) ) -> Error (VariableAlreadyDefinedError pos)
+            | Error (EnumValueExist (pos, _) ) -> Error (EnumValueExistenceError pos)
+            | Error (EnumNotContain (pos, _) ) -> Error (EnumNotContainValue pos)
+            | Error (MainError pos )-> Error (MainModuleMissing pos)
+            | Error (MissingModule (pos, _) ) -> Error (MissingModule pos)
+            | Error (ModuleCallTooMany (pos, _, _) ) -> Error (ModuleCalledTooManyArgs pos)
+            | Error (ModuleCallMissing (pos, _, _) ) -> Error (ModuleCalledMissingArgs pos)
+            | Error (AccessOperatorAppliedToNonModule pos)  -> Error (AccessOperatorAppliedToNonModule pos)
+            | Error (MainModuleHasParams pos ) -> Error (MainModuleHasParams pos)
+            | Ok env -> Ok (abstract_syntax) 
           )
   with 
   | NuxmvLexer.Unexpected_Char c ->

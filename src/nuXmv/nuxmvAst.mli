@@ -23,9 +23,9 @@ type nuxmv_expr =
     | False of Position.t
     | CInt of Position.t * int
     | CFloat of Position.t * float
-    | Ident of Position.t * ident
+    | Ident of Position.t * comp_ident
     | CRange of Position.t * int * int
-    | Call of Position.t * comp_ident * nuxmv_expr list
+    (* | Call of Position.t * comp_ident * nuxmv_expr list *)
     | Not of Position.t * nuxmv_expr
     | And of Position.t * nuxmv_expr * nuxmv_expr
     | Or of Position.t * nuxmv_expr * nuxmv_expr
@@ -63,12 +63,15 @@ type nuxmv_expr =
 
 and comp_ident = 
     | CIdent of Position.t * ident
-    (* | PerIdent of Position.t * comp_ident * ident
-    | BrackIdent of Position.t * comp_ident * expr_type
-    | Self of Position.t *)
+    | PerIdent of Position.t * comp_ident * ident
+    (*  
+        | BrackIdent of Position.t * comp_ident * expr_type
+        | Self of Position.t 
+    *)
     
-and expr_type = 
+type expr_type = 
     | LtlExpr of Position.t * nuxmv_expr
+    | InvarExpr of Position.t * nuxmv_expr
     | NextExpr of Position.t * nuxmv_expr
     | SimpleExpr of Position.t * nuxmv_expr
     | ArrayExpr of Position.t * expr_type list
@@ -96,15 +99,16 @@ type define_element =
     | ArrayDef of Position.t * ident * expr_type
 
 type assign_const = 
-    | InitAssign of Position.t * comp_ident * expr_type 
-    | NextAssign of Position.t * comp_ident * expr_type 
-    | Assign of Position.t * comp_ident * expr_type 
+    | InitAssign of Position.t * ident * expr_type 
+    | NextAssign of Position.t * ident * expr_type 
+    | Assign of Position.t * ident * expr_type 
 
 type module_element = 
     | StateVarDecl of Position.t * state_var_decl list
     | DefineDecl of Position.t * define_element list
     | AssignConst of Position.t * assign_const list
     | TransConst of Position.t * expr_type
+    | InvarSpec of Position.t * expr_type 
     | LtlSpec of Position.t * expr_type
 
 type nuxmv_module = 

@@ -26,11 +26,11 @@ type nuxmv_expr =
     | False of Position.t
     | CInt of Position.t * int
     | CFloat of Position.t * float
-    | Ident of Position.t * ident
+    | Ident of Position.t * comp_ident
     | CRange of Position.t * int * int
 
     (* Function Call *)
-    | Call of Position.t * comp_ident * nuxmv_expr list
+    (* | Call of Position.t * comp_ident * nuxmv_expr list *)
 
     (* Boolean operators *)
     | Not of Position.t * nuxmv_expr
@@ -86,12 +86,15 @@ type nuxmv_expr =
 (* Complex Identifiers *)
 and comp_ident = 
     | CIdent of Position.t * ident
-    (* | PerIdent of Position.t * comp_ident * ident
-    | BrackIdent of Position.t * comp_ident * expr_type (* These are more advanced than the exampls I have, so I will skip for now *)
-    | Self of Position.t *)
+    | PerIdent of Position.t * comp_ident * ident
+    (* 
+        | BrackIdent of Position.t * comp_ident * expr_type (* These are more advanced than the exampls I have, so I will skip for now *)
+        | Self of Position.t 
+    *)
     
-and expr_type = 
+type expr_type = 
     | LtlExpr of Position.t * nuxmv_expr
+    | InvarExpr of Position.t * nuxmv_expr
     | NextExpr of Position.t * nuxmv_expr
     | SimpleExpr of Position.t * nuxmv_expr
     (* Array Expression*)
@@ -120,15 +123,16 @@ type define_element =
     | ArrayDef of Position.t * ident * expr_type (* Assert that it is an array expr and is allowed next *)
 
 type assign_const = 
-    | InitAssign of Position.t * comp_ident * expr_type (* Assert not next operation *)
-    | NextAssign of Position.t * comp_ident * expr_type (* Assert not next operation *)
-    | Assign of Position.t * comp_ident * expr_type (* Next operation allowed *)
+    | InitAssign of Position.t * ident * expr_type (* Assert not next operation *)
+    | NextAssign of Position.t * ident * expr_type (* Assert not next operation *)
+    | Assign of Position.t * ident * expr_type (* Next operation allowed *)
 
 type module_element = 
     | StateVarDecl of Position.t * state_var_decl list
     | DefineDecl of Position.t * define_element list
     | AssignConst of Position.t * assign_const list
     | TransConst of Position.t * expr_type (* Next operation is allowed *)
+    | InvarSpec of Position.t * expr_type (* Next operation is not allowed *)
     | LtlSpec of Position.t * expr_type
 
 type nuxmv_module = 
@@ -352,6 +356,7 @@ let print_module_element (s:string) (me : module_element) : string =
     | DefineDecl (_, del) -> s
     | AssignConst (_, acl) -> s
     | TransConst (_, expr_type) -> s
+    | InvarSpec (_, expr_type) -> s
     | LtlSpec (_, expr_type) -> s
 
 let print_nuxmv_module (s: string) (nm : nuxmv_module) : string = 
