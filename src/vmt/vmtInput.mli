@@ -20,7 +20,17 @@ type output = VmtAst.t
 
 type parse_error =
   | UnexpectedChar of Position.t * char
-  | SyntaxError of Position.t
+  | SyntaxError of Position.t    
+  | IdentifierAlreadyExists of Position.t * string
+  | InvalidArgCount of Position.t * int * int
+  | InvalidOperator of Position.t * string
+  | InvalidType of Position.t * string
+  | InvalidTypeWithOperator of Position.t * string * string
+  | MissingAttribute of Position.t
+  | MissingIdentifier of Position.t * string
+  | MissingTerm of Position.t 
+  | NonMatchingTypes of Position.t * string * string
+  | NotSupported of Position.t * string
 
 val from_channel: in_channel -> (output, parse_error) result
 
