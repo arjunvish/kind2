@@ -33,27 +33,48 @@ let find_opt (func : ('a -> bool)) (lst: 'a list) : 'a option =
     try let ans = List.find func lst in Some ans
     with Not_found -> None
 
+let rec generate_full_expr ref_list svi_map term =
+    match term with
+    | Ast.Ident (pos, i) -> (
+        let id_res = find_opt (fun x -> match x with (id,rt,t) when i = id -> true| _ -> false) ref_list in 
+        match id_res with
+        | Some (id, _, t) -> generate_full_expr ref_list svi_map t  
+        | None -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
+    )
+    | Ast.Operation (pos, op, tl) -> (
+        let tl' = List.map (generate_full_expr ref_list svi_map) tl in
+        (* TODO: make this operation conversion exhasutive to all allowed terms in term.mli *)
+        match op with
+        | "not" -> Term.mk_not (List.hd tl')
+        | "or" -> Term.mk_or tl'
+        | "and" -> Term.mk_and tl'
+        | "xor" -> Term.mk_xor tl'
+        | "to_real" -> Term.mk_to_real (List.hd tl')
+        | "=" -> Term.mk_eq tl'
+        | "<=" -> Term.mk_leq tl'
+        | "<" -> Term.mk_lt tl'
+        | ">=" -> Term.mk_geq tl'
+        | ">" -> Term.mk_gt tl'
+        | "-" -> Term.mk_minus tl'
+        | "+" -> Term.mk_plus tl'
+        | "*" -> Term.mk_times tl'
+        | "/" -> Term.mk_div tl'
+        | "//" -> Term.mk_intdiv tl'
+        | "mod" -> (
+            match tl' with
+            | term1 :: term2 :: [] -> Term.mk_mod term1 term2
+            | _ -> assert false
+        )
+        | "abs" -> Term.mk_abs (List.hd tl')
+        | _ -> assert false
+    )
+    | Ast.AttributeTerm (pos, term, _) -> generate_full_expr ref_list svi_map term 
+    | Ast.True _ -> Term.mk_true ()
+    | Ast.False _ -> Term.mk_false ()
+    | Ast.Integer (_, int) -> Term.mk_num_of_int int
+    | Ast.Real (_, real) -> Term.mk_num_of_int (int_of_float real) (* TODO: figure out how to handle reals in internal system *)
+
 let rec find_spec_exprs expr_list svi_map = 
-    let rec generate_full_expr (ref_list: (string * Ast.sort * Ast.term) list) (term: Ast.term) =
-        match term with
-        | Ast.Ident (pos, i) -> (
-            let id_res = find_opt (fun x -> match x with (id,rt,t) when i = id -> true| _ -> false) ref_list in 
-            match id_res with
-            | Some (id, _, t) -> generate_full_expr ref_list t
-            | None -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
-        )
-        | Ast.Operation (pos, op, tl) -> (
-            let tl' = List.map (generate_full_expr ref_list) tl in
-            (* TODO: Change the mk_and to be actually check the operation instead of assuming and *)
-            Term.mk_and tl'
-        )
-        | Ast.AttributeTerm (pos, term, att) -> (
-            generate_full_expr ref_list term
-        )
-        | Ast.True _ -> Term.mk_true ()
-        | Ast.False _ -> Term.mk_false ()
-        | Ast.Numeral (_, num) -> Term.mk_num_of_int num
-    in
     let ref_list = 
         filter_map 
         (fun x -> match x with Ast.DefineFun (_, id, [], rt, term) -> Some (id, rt, term) | _ -> None) 
@@ -63,8 +84,11 @@ let rec find_spec_exprs expr_list svi_map =
     let init_expr =
         let init_check x = 
             match x with 
-            | (id, rt, Ast.AttributeTerm (pos, term', Ast.InitTrue _)) -> (
-                Some (id, generate_full_expr ref_list term')
+            | (id, rt, Ast.AttributeTerm (pos, term', prop_list)) -> (
+                let find_init = fun x -> match x with Ast.InitTrue _ -> true | _ -> false in
+                match find_opt find_init prop_list with
+                | Some _ -> Some (id, generate_full_expr ref_list svi_map term')
+                | None -> None
             )
             | _ -> None
         in
@@ -74,8 +98,11 @@ let rec find_spec_exprs expr_list svi_map =
     let trans_expr =
         let trans_check x = 
             match x with 
-            | (id, rt, Ast.AttributeTerm (pos, term', Ast.TransTrue _)) -> (
-                Some (id, generate_full_expr ref_list term')
+            | (id, rt, Ast.AttributeTerm (pos, term', prop_list)) -> (
+                let find_trans = fun x -> match x with Ast.TransTrue _ -> true | _ -> false in
+                match find_opt find_trans prop_list with
+                | Some _ -> Some (id, generate_full_expr ref_list svi_map term')
+                | None -> None
             )
             | _ -> None
         in
@@ -86,17 +113,22 @@ let rec find_spec_exprs expr_list svi_map =
         let prop_status = P.PropUnknown in
         let prop_check x = 
             match x with 
-            | (prop_name, rt, Ast.AttributeTerm (pos, term', Ast.InvarProperty (p, num) )) -> (
-                let lib_pos = pos_of_file_row_col (pos.fname, pos.line, pos.col) in
-                let prop_term = generate_full_expr ref_list term' in
-                let prop_source = P.PropAnnot (lib_pos) in
-                let return_prop = 
-                {   P.prop_name; 
-                    P.prop_source; 
-                    P.prop_term; 
-                    P.prop_status;  } 
-                in
-                Some (return_prop)
+            | (prop_name, rt, Ast.AttributeTerm (pos, term', prop_list )) -> (
+                let find_invar = fun x -> match x with Ast.InvarProperty _ -> true | _ -> false in
+                match find_opt find_invar prop_list with
+                | None -> None
+                | Some _ -> (        
+                    let lib_pos = pos_of_file_row_col (pos.fname, pos.line, pos.col) in
+                    let prop_term = generate_full_expr ref_list svi_map term' in
+                    let prop_source = P.PropAnnot (lib_pos) in
+                    let return_prop = 
+                    {   P.prop_name; 
+                        P.prop_source; 
+                        P.prop_term; 
+                        P.prop_status;  } 
+                    in
+                    Some (return_prop)
+                )
             )
             | _ -> None
         in
@@ -112,7 +144,14 @@ let determine_var scope next_vars expr: StateVar.t option =
         match is_next with
         | Some (next_id, prev_id) -> None
         | None -> (
-            let _type = Type.mk_bool () in (* TODO: change this to correct type, Default making all variables a bool will specify types later in ast*)
+            let _type = (
+                match sort with
+                | Ast.Sort (_, "Bool") -> Type.mk_bool ()
+                | Ast.Sort (_, "Int") -> Type.mk_int ()
+                | Ast.Sort (_, "Real") -> Type.mk_real ()
+                | _ -> assert false                    
+            ) 
+            in
             let state_var = StateVar.mk_state_var ident scope _type in
             Some state_var
         )
@@ -121,9 +160,11 @@ let determine_var scope next_vars expr: StateVar.t option =
 
 let determine_next expr : (string * string) option =
     match expr with
-    | Ast.DefineFun (pos, ident, [], sort, AttributeTerm (_, Ident (_, prev_id), NextName (_, next_id))) ->
-    (
-        Some (next_id, prev_id)
+    | Ast.DefineFun (pos, ident, [], sort, AttributeTerm (_, Ident (_, prev_id), prop_list)) -> (  
+        let find_next = fun x -> match x with Ast.NextName (_, next_id) -> Some next_id | _ -> None in
+            match filter_map find_next prop_list with
+            | [] -> None
+            | next_id :: tail -> Some (next_id, prev_id)
     )
     | _ -> None
 
@@ -271,12 +312,7 @@ let trans_sys_of_vmt
             (List.map Var.type_of_var trans_formals)
             Type.t_bool
     in
-
-    let state_var_bounds : ((LustreExpr.expr LustreExpr.bound_or_fixed list) StateVar.StateVarHashtbl.t)
-         = 
-            let test : ((LustreExpr.expr LustreExpr.bound_or_fixed) list) = [] in
-            StateVar.StateVarHashtbl.create 0
-    in 
+    
     let trans_sys, _ = 
         TransSys.mk_trans_sys 
             scope
