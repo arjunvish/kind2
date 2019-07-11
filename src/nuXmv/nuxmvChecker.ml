@@ -542,7 +542,7 @@ let rec t_eval_expr (in_enum : (bool * env)) (env : env) (expr: A.nuxmv_expr)  :
             | None -> (
                 match find_opt (fun x -> match x with Ok SetT _ -> true | _ -> false) right_expr_res with
                 | Some _ -> (
-                    let turn_into_sets lst = List.map (fun x -> match x with Ok SetT x' -> SetT x' | Ok x'-> SetT [x'] | _ -> assert false) lst in
+                    let turn_into_sets lst = List.map (fun x -> match x with Ok (SetT x') -> SetT x' | Ok x'-> SetT [x'] | _ -> assert false) lst in
                     Ok (SetT (turn_into_sets right_expr_res))
                 )
                 | None -> (
@@ -828,7 +828,7 @@ and t_eval_assign_const (env : env) (acl: A.assign_const list): (env, type_error
         | A.InitAssign (pos, id, et) -> (
             match lookup_opt id env with
             | Some (_, EnumT lst) -> (
-                match t_eval_expr_type (true, lst) env et with
+                match t_eval_expr_type (true, (id, (EnumT lst)) :: lst) env et with
                 | Ok _ -> t_eval_assign_const env tail
                 | Error e -> Error e
             )
@@ -843,7 +843,7 @@ and t_eval_assign_const (env : env) (acl: A.assign_const list): (env, type_error
         | A.NextAssign (pos, id, et) -> (
             match lookup_opt id env with
             | Some (_, EnumT lst) -> (
-                match t_eval_expr_type (true, lst) env et with
+                match t_eval_expr_type (true, (id, (EnumT lst)) :: lst) env et with
                 | Ok _ -> t_eval_assign_const env tail 
                 | Error e -> Error e
             )
