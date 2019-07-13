@@ -120,7 +120,7 @@ let rec find_spec_exprs expr_list svi_map =
                 match find_opt find_invar prop_list with
                 | None -> None
                 | Some (Ast.InvarProperty (_, prop_num)) -> (        
-                    let lib_pos = pos_of_file_row_col (pos.fname, pos.line, pos.col) in
+                    let lib_pos = pos_of_file_row_col (pos.Position.fname, pos.Position.line, pos.Position.col) in
                     let prop_term = generate_full_expr ref_list svi_map term' in
                     let prop_source = P.PropAnnot (lib_pos) in
                     let prop_name = string_of_int prop_num in
