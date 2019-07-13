@@ -132,6 +132,30 @@ let rec eval_term term env =
         )
         | error -> error
     )
+    | A.Let (pos, var_bind_list, term) -> (
+        let eval_vb = 
+            fun x -> 
+                match x with 
+                | A.VarBind (_, id, term') -> (
+                    match eval_term term' env with
+                    | Ok (_type, _) -> Ok (id,_type)
+                    | Error error -> Error error
+                )
+        in
+        let mapped_params = List.map eval_vb var_bind_list in
+        match find_opt (fun x -> match x with | Error _ -> true | _ -> false) mapped_params with
+        | Some (Error error) -> Error error
+        | None -> (
+            let env' =
+                List.fold_left 
+                    (fun acc x -> match x with Ok (id, _type) -> (id,_type) :: acc | _ -> assert false)
+                    env
+                    mapped_params
+            in
+            eval_term term env'
+        )
+        | _ -> assert false
+    )
 
 and eval_operation pos op term_list env = 
     match (op, eval_term_list term_list env pos) with

@@ -60,6 +60,7 @@ rule token = parse
   | "set-option"      { P.SETOPTION }
   | "set-logic"       { P.SETLOGIC }
   | "assert"          { P.ASSERT }
+  | "let"             { P.LET }
   | ":next"           { P.NEXT }
   | ":init"           { P.INIT }
   | ":trans"          { P.TRANS }

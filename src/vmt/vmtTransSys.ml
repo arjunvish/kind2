@@ -75,6 +75,31 @@ let rec generate_full_expr ref_list svi_map term =
     | Ast.False _ -> Term.mk_false ()
     | Ast.Integer (_, int) -> Term.mk_num_of_int int
     | Ast.Real (_, real) -> Term.mk_num_of_int (int_of_float real) (* TODO: figure out how to handle reals in internal system *)
+    | Ast.Let (pos, vbl, term) -> (
+        let create_var_term_bind vb = (
+            match vb with
+            | Ast.VarBind (_, id, term') -> (
+                let processed_term = generate_full_expr ref_list svi_map term' in
+                let var = Var.mk_fresh_var (Term.type_of_term processed_term) in
+                (var, processed_term)
+            )
+        ) in
+        let create_rflist_items vb = (
+            match vb with
+            | Ast.VarBind (_, id, term') -> (
+                let pt_type = Term.type_of_term (generate_full_expr ref_list svi_map term') in
+                let rt = if Type.is_bool pt_type then "Bool"
+                         else if Type.is_int pt_type then "Int"
+                         else "Real"
+                in
+                (id, Ast.Sort(pos, rt), term)
+            )
+        ) in
+        let ref_list' = (List.map create_rflist_items vbl) @ ref_list in
+        let term' = generate_full_expr ref_list' svi_map term in
+        let vars = List.map create_var_term_bind vbl in
+        Term.mk_let vars term'
+    )
 
 let rec find_spec_exprs expr_list svi_map = 
     let ref_list = 

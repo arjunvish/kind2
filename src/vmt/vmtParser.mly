@@ -30,7 +30,7 @@ let mk_pos = Position.create_position
 %token TRUE FALSE
 %token LPAREN RPAREN
 %token COLON
-%token EXCL NEXT INIT TRANS INVARPROP LIVEPROP
+%token EXCL NEXT INIT TRANS INVARPROP LIVEPROP LET
 %token DECLAREFUN DEFINEFUN DECLARESORT DEFINESORT
 %token SETLOGIC SETOPTION ASSERT
 %token EOF
@@ -58,9 +58,13 @@ function_def:
     | fun_id = ID LPAREN sl = list(sorted_var) RPAREN s = sort t = term     { A.DefineFun (mk_pos $startpos, fun_id, sl, s, t) }
 
 term:
-    | c = constant                                                          { c }
-    | LPAREN op = ID tl = list (term) RPAREN                                { A.Operation (mk_pos $startpos, op, tl) }
-    | LPAREN EXCL t = term al = nonempty_list(attribute) RPAREN             { A.AttributeTerm (mk_pos $startpos, t, al) }
+    | c = constant                                                              { c }
+    | LPAREN op = ID tl = list(term) RPAREN                                     { A.Operation (mk_pos $startpos, op, tl) }
+    | LPAREN LET LPAREN vbl = nonempty_list(var_binding)RPAREN t = term RPAREN  { A.Let (mk_pos $startpos, vbl, t) } 
+    | LPAREN EXCL t = term al = nonempty_list(attribute) RPAREN                 { A.AttributeTerm (mk_pos $startpos, t, al) }
+
+var_binding:
+    | LPAREN id = ID t = term RPAREN                                            { A.VarBind (mk_pos $startpos, id, t) }
 
 sorted_var:
     | LPAREN id = ID s = sort RPAREN                                        { A.SortedVar (mk_pos $startpos, id, s) }

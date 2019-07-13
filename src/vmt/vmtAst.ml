@@ -24,7 +24,10 @@ type attribute =
     | InvarProperty of Position.t * int
     | LiveProperty of Position.t * int
 
-type term = 
+type param = 
+    | VarBind of Position.t * string * term
+
+and term = 
     | Ident of Position.t * ident
     | Integer of Position.t * int
     | Real of Position.t * float
@@ -32,6 +35,7 @@ type term =
     | False of Position.t
     | Operation of Position.t * string * term list
     | AttributeTerm of Position.t * term * attribute list
+    | Let of Position.t * param list * term
 
 type sort = 
     | Sort of Position.t * string
