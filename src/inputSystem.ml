@@ -59,9 +59,9 @@ let silent_contracts_of (type s) : s t -> (Scope.t * string list) list
 
   | Horn subsystem -> raise (UnsupportedFileFormat "Horn")
 
-  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv _ -> []
 
-  | Vmt subsystem -> raise (UnsupportedFileFormat "VMT")
+  | Vmt _ -> []
 
 let ordered_scopes_of (type s) : s t -> Scope.t list = function
   | Lustre (subsystem, _) ->
@@ -74,9 +74,9 @@ let ordered_scopes_of (type s) : s t -> Scope.t list = function
 
   | Horn subsystem -> assert false
 
-  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv 1")
 
-  | Vmt subsystem -> raise (UnsupportedFileFormat "VMT")
+  | Vmt subsystem ->[["Main"]]
 
 (* Uid generator for test generation params.
 
@@ -150,8 +150,8 @@ let maximal_abstraction_for_testgen (type s)
 
   | Native subsystem -> assert false
   | Horn subsystem -> assert false
-  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv")
-  | Vmt subsystem -> raise (UnsupportedFileFormat "VMT")
+  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv 2")
+  | Vmt subsystem -> raise (UnsupportedFileFormat "VMT 2")
 
 let next_analysis_of_strategy (type s)
 : s t -> 'a -> Analysis.param option = function
@@ -193,8 +193,19 @@ let next_analysis_of_strategy (type s)
   )
          
   | Horn subsystem -> (function _ -> assert false)
-  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv")
-  | Vmt subsystem -> raise (UnsupportedFileFormat "Vmt")
+  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv 3")
+  | Vmt _ -> (
+    fun results -> (
+        let scope = ["Main"] in
+        let info = {
+          Analysis.top= scope;
+          Analysis.uid= 1;
+          Analysis.abstraction_map= Scope.Map.add scope false (Scope.Map.empty);
+          Analysis.assumptions= Scope.Map.empty;
+        } in
+        Some (Analysis.First (info))
+    )
+  )
 
 
 let interpreter_param (type s) (input_system : s t) =
@@ -216,8 +227,8 @@ let interpreter_param (type s) (input_system : s t) =
         Scope.Map.empty (S.all_subsystems sub)
     )
     | Horn _ -> raise (UnsupportedFileFormat "Horn")
-    | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
-    | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+    | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 4")
+    | Vmt _ -> raise (UnsupportedFileFormat "VMT 4")
   in
 
   Analysis.First {
@@ -235,8 +246,8 @@ let pp_print_subsystems_debug (type s) : s t -> Format.formatter -> unit = funct
       List.iter (Format.fprintf fmt "%a@." LustreNode.pp_print_node_debug) lustre_nodes)
   | Native _ -> failwith "Unsupported input system: Native"
   | Horn _ -> failwith "Unsupported input system: Horn"
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 5")
+  | Vmt _ -> raise (UnsupportedFileFormat "VMT 5")
 
 (* Return a transition system with [top] as the main system, sliced to
    abstractions and implementations as in [abstraction_map]. *)
@@ -257,7 +268,7 @@ let trans_sys_of_analysis (type s) ?(preserve_sig = false)
     
   | Horn _ -> assert false
 
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 6")
 
   | Vmt (subsystem) -> (
     function analysis ->
@@ -286,9 +297,9 @@ let pp_print_path_pt
 
   | Horn _ -> assert false
 
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 7")
 
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | Vmt _ -> raise (UnsupportedFileFormat "VMT 6")
 
 
 let pp_print_path_xml
@@ -307,9 +318,9 @@ let pp_print_path_xml
 
   | Horn _ -> assert false
 
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 8")
 
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | Vmt _ -> raise (UnsupportedFileFormat "VMT 7")
 
 
 let pp_print_path_json
@@ -327,9 +338,9 @@ let pp_print_path_json
 
   | Horn _ -> assert false
 
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 9")
 
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | Vmt _ -> raise (UnsupportedFileFormat "VMT 8")
 
 
 let pp_print_path_in_csv
@@ -346,9 +357,9 @@ let pp_print_path_in_csv
 
   | Horn _ -> assert false
 
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 10")
 
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | Vmt _ -> raise (UnsupportedFileFormat "VMT 9")
 
 
 let reconstruct_lustre_streams (type s) (input_system : s t) state_vars =
@@ -357,8 +368,8 @@ let reconstruct_lustre_streams (type s) (input_system : s t) state_vars =
     LustrePath.reconstruct_lustre_streams subsystem state_vars
   | Native _ -> assert false
   | Horn _ -> assert false
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv")
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT")
+  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 11")
+  | Vmt _ -> raise (UnsupportedFileFormat "VMT 10")
 
 
 let mk_state_var_to_lustre_name_map (type s):
@@ -547,9 +558,9 @@ fun sys top_scope target ->
   | Horn _ ->
     Format.printf "can't compile from horn clause input: unsupported"
   | NuXmv _ ->
-    Format.printf "can't compile from nuxmv clause input: unsupported"
+    Format.printf "can't compile from nuxmv clause input: unsupported (1)"
   | Vmt _ ->
-    Format.printf "can't compile from vmt clause input: unsupported"
+    Format.printf "can't compile from vmt clause input: unsupported (1)"
 
 let compile_oracle_to_rust (type s): s t -> Scope.t -> string -> (
   string *
@@ -567,9 +578,9 @@ fun sys top_scope target ->
   | Horn _ ->
     failwith "can't compile from horn clause input: unsupported"
   | NuXmv _ ->
-    failwith "can't compile from nuxmv clause input: unsupported"
+    failwith "can't compile from nuxmv clause input: unsupported (2)"
   | Vmt _ ->
-    failwith "can't compile from vmt clause input: unsupported"
+    failwith "can't compile from vmt clause input: unsupported (2)"
 
 let contract_gen_param (type s): s t -> (Analysis.param * (Scope.t -> N.t)) =
 fun sys ->
@@ -592,9 +603,9 @@ fun sys ->
   | Horn _ ->
     failwith "can't generate contracts from horn clause input: unsupported"
   | NuXmv _ ->
-    failwith "can't compile from nuxmv clause input: unsupported"
+    failwith "can't compile from nuxmv clause input: unsupported (3)"
   | Vmt _ ->
-    failwith "can't compile from vmt clause input: unsupported"
+    failwith "can't compile from vmt clause input: unsupported (3)"
 
 (* 
    Local Variables:
