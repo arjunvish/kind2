@@ -115,14 +115,15 @@ let rec find_spec_exprs expr_list svi_map =
         let prop_status = P.PropUnknown in
         let prop_check x = 
             match x with 
-            | (prop_name, rt, Ast.AttributeTerm (pos, term', prop_list )) -> (
+            | (_, rt, Ast.AttributeTerm (pos, term', prop_list )) -> (
                 let find_invar = fun x -> match x with Ast.InvarProperty _ -> true | _ -> false in
                 match find_opt find_invar prop_list with
                 | None -> None
-                | Some _ -> (        
+                | Some (Ast.InvarProperty (_, prop_num)) -> (        
                     let lib_pos = pos_of_file_row_col (pos.fname, pos.line, pos.col) in
                     let prop_term = generate_full_expr ref_list svi_map term' in
                     let prop_source = P.PropAnnot (lib_pos) in
+                    let prop_name = string_of_int prop_num in
                     let return_prop = 
                     {   P.prop_name; 
                         P.prop_source; 
@@ -131,12 +132,14 @@ let rec find_spec_exprs expr_list svi_map =
                     in
                     Some (return_prop)
                 )
+                | _ -> assert false
             )
             | _ -> None
         in
         filter_map prop_check ref_list
     in
     init_expr, trans_expr, properties
+    
 
 let determine_var scope next_vars expr: StateVar.t option =
     match expr with
