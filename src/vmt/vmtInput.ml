@@ -35,7 +35,7 @@ type parse_error =
   | NotSupported of Position.t * string
 
 let fail_at_position_pt pos msg =
-  Log.log L_error "Parser error at %a: @[<v>%s@]"
+  Log.log Lib.L_error "Parser error at %a: @[<v>%s@]"
     Position.pp_print_position pos msg
 
 let parse_buffer lexbuf : (output, parse_error) result =
