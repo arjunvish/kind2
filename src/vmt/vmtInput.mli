@@ -18,6 +18,8 @@
 
 type output = VmtAst.t
 
+exception Parser_error
+
 type parse_error =
   | UnexpectedChar of Position.t * char
   | SyntaxError of Position.t    
@@ -31,6 +33,8 @@ type parse_error =
   | MissingTerm of Position.t 
   | NonMatchingTypes of Position.t * string * string
   | NotSupported of Position.t * string
+
+val fail_at_position_pt: Position.t -> string -> unit
 
 val from_channel: in_channel -> (output, parse_error) result
 

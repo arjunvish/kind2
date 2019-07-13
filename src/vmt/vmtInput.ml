@@ -18,6 +18,8 @@
 
 type output = VmtAst.t
 
+exception Parser_error
+
 type parse_error =
   | UnexpectedChar of Position.t * char
   | SyntaxError of Position.t    
@@ -31,6 +33,10 @@ type parse_error =
   | MissingTerm of Position.t 
   | NonMatchingTypes of Position.t * string * string
   | NotSupported of Position.t * string
+
+let fail_at_position_pt pos msg =
+  Log.log L_error "Parser error at %a: @[<v>%s@]"
+    Position.pp_print_position pos msg
 
 let parse_buffer lexbuf : (output, parse_error) result =
   try
@@ -73,5 +79,55 @@ let from_file filename =
 
 let of_file filename = 
   match from_file filename with
-  | Ok res -> { SubSystem.scope = [] ; source = res ; has_contract = false ; has_modes = false ; has_impl = false ; subsystems = [] }
-  | Error _ -> failwith "NuXmv parsing/semantic check/type check error."
+  | Ok res -> { SubSystem.scope = ["Main"] ; source = res ; has_contract = false ; has_modes = false ; has_impl = false ; subsystems = [] }
+  | Error error ->(
+    match error with
+    | UnexpectedChar (pos, char) -> (
+      fail_at_position_pt pos ("unexpected character ‘"^ (String.make 1 char) ^ "’") 
+      ; raise (Parser_error)
+    )
+    | SyntaxError (pos) -> (
+      fail_at_position_pt pos "syntax error" 
+      ; raise (Parser_error)
+    )
+    | IdentifierAlreadyExists (pos, str) -> (
+      fail_at_position_pt pos ("Identifier " ^ str ^ " already exists in the scope")
+      ; raise (Parser_error)
+    )
+    | InvalidArgCount (pos, i1, i2) -> (
+      fail_at_position_pt pos ("Invalid argument count ("^string_of_int i2^"given but "^string_of_int i1^" expected)")
+      ; raise (Parser_error)
+    )
+    | InvalidOperator (pos, str) -> (
+      fail_at_position_pt pos ("Invalid operator '"^str^"'")
+      ; raise (Parser_error)
+    )
+    | InvalidType (pos, str) -> (
+      fail_at_position_pt pos ("Invalid type '"^str^"'")
+      ; raise (Parser_error)
+    )
+    | InvalidTypeWithOperator (pos, str1, str2) -> (
+      fail_at_position_pt pos ("Operator '"^str2^"' doesn't support type '"^str1^"'")
+      ; raise (Parser_error)
+    )
+    | MissingAttribute pos -> (
+      fail_at_position_pt pos "Attribute is required when using (! term attribute_list)"
+      ; raise (Parser_error)
+    )
+    | MissingIdentifier (pos, str) -> (
+      fail_at_position_pt pos ("Identifier '"^str^"' is missing")
+      ; raise (Parser_error)
+    )
+    | MissingTerm pos -> (
+      fail_at_position_pt pos ("Term is required")
+      ; raise (Parser_error)
+    )
+    | NonMatchingTypes (pos, str1, str2) -> (
+      fail_at_position_pt pos ("Types '"^str1^"' and '"^str2^"' don't match in the expression")
+      ; raise (Parser_error)
+    )
+    | NotSupported (pos, str) -> (
+      fail_at_position_pt pos ("Functionality '"^str^"' is parable but not supported")
+      ; raise (Parser_error)
+    )
+  ) 
