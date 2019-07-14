@@ -319,8 +319,8 @@ let trans_sys_of_vmt
         List.map 
             (fun sv ->
                 Var.mk_state_var_instance sv TransSys.trans_base)
-            state_vars @
-
+            state_vars 
+        @
         (* Non-constant state variables at the previous instant *)
         List.map 
             (fun sv -> 
@@ -336,8 +336,8 @@ let trans_sys_of_vmt
         UfSymbol.mk_uf_symbol
             (Format.asprintf
                 "%s_%s_%d"
-                Ids.init_uf_string
-                "Vmt_Program"
+                Ids.trans_uf_string
+                "vmt_program"
                 (A.info_of_param analysis_param).A.uid)
             (List.map Var.type_of_var trans_formals)
             Type.t_bool
