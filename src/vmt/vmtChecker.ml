@@ -315,4 +315,6 @@ let rec evaluate_expr_list expr_list env sort_env =
     )
 
 let check_vmt (expr_list : A.t ) : (A.t, vmt_error) result = 
-    evaluate_expr_list expr_list [] []
+    match evaluate_expr_list expr_list [] [] with
+    | Ok _ -> Ok expr_list
+    | Error error -> Error error
