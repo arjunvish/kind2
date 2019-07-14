@@ -20,7 +20,6 @@ open Lib
 module Ids = Lib.ReservedIds
 module A = Analysis
 module P = Property
-module S = SubSystem
 
 module Ast = VmtAst
 
@@ -108,9 +107,6 @@ let rec find_spec_exprs expr_list svi_map =
         (fun x -> match x with Ast.DefineFun (_, id, [], rt, term) -> Some (id, rt, term) | _ -> None) 
         expr_list 
     in
-
-    VmtInput.fail_at_position_pt (Position.create_empty_position) ("expr_list length:"^ string_of_int (List.length expr_list)) ;
-    VmtInput.fail_at_position_pt (Position.create_empty_position) ("ref_list length:"^ string_of_int (List.length ref_list)) ;
     
     let init_expr =
         let init_check x = 
@@ -126,9 +122,6 @@ let rec find_spec_exprs expr_list svi_map =
         filter_map init_check ref_list |> List.hd
     in
 
-
-    VmtInput.fail_at_position_pt (Position.create_empty_position) "testing progress 2" ;
-
     let trans_expr =
         let trans_check x = 
             match x with 
@@ -142,9 +135,6 @@ let rec find_spec_exprs expr_list svi_map =
         in
         filter_map trans_check ref_list |> List.hd
     in
-
-
-    VmtInput.fail_at_position_pt (Position.create_empty_position) "testing progress 3" ;
 
     let properties = 
         let prop_status = P.PropUnknown in
@@ -173,9 +163,6 @@ let rec find_spec_exprs expr_list svi_map =
         in
         filter_map prop_check ref_list
     in
-
-    VmtInput.fail_at_position_pt (Position.create_empty_position) "testing progress 4" ;
-
     init_expr, trans_expr, properties
     
 
@@ -228,17 +215,11 @@ let trans_sys_of_vmt
     subsystem analysis_param
     =
 
-    let test = 
+    let expr_list = 
         SubSystem.all_subsystems subsystem
-        |> List.map (function { S.scope } -> scope)
-        |> List.hd |> List.hd
+        |> List.map (function { SubSystem.source } -> source) 
+        |> List.hd
     in
-
-    VmtInput.fail_at_position_pt (Position.create_empty_position) ("Subsystem name:"^ test ) ;
-
-    let expr_list = subsystem.S.source in
-
-    VmtInput.fail_at_position_pt (Position.create_empty_position) ("expr_list length:"^ string_of_int (List.length expr_list)) ;
 
     let scope = ["Main"] in (* TODO: determine how to get the name for the scope *)
 
