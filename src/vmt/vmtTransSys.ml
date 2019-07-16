@@ -166,11 +166,11 @@ let rec find_spec_exprs expr_list svi_map =
     init_expr, trans_expr, properties
     
 
-let determine_var scope next_vars expr: StateVar.t option =
+let determine_var scope next_vars sort_map expr: StateVar.t option =
     match expr with
     | Ast.DeclareFun (pos, ident, [], sort) ->
     (
-        let is_next = List.find_opt (fun x -> if fst x = ident then true else false) next_vars in
+        let is_next = find_opt (fun x -> if fst x = ident then true else false) next_vars in
         match is_next with
         | Some (next_id, prev_id) -> None
         | None -> (
@@ -179,7 +179,14 @@ let determine_var scope next_vars expr: StateVar.t option =
                 | Ast.Sort (_, "Bool") -> Type.mk_bool ()
                 | Ast.Sort (_, "Int") -> Type.mk_int ()
                 | Ast.Sort (_, "Real") -> Type.mk_real ()
-                | _ -> assert false                    
+                | Ast.Sort (_, str) -> (
+                    match find_opt (fun x -> if (fst x) = str then true else false) sort_map with
+                    | Some (_, "Bool") -> Type.mk_bool ()
+                    | Some (_, "Int") -> Type.mk_int ()
+                    | Some (_, "Real") -> Type.mk_real ()
+                    | _ -> assert false
+                ) 
+                | _ -> assert false                
             ) 
             in
             let state_var = StateVar.mk_state_var ident scope _type in
@@ -198,9 +205,9 @@ let determine_next expr : (string * string) option =
     )
     | _ -> None
 
-let create_map_instances_and_vars expr_list scope =
+let create_map_instances_and_vars expr_list scope sort_map =
     let next_vars = expr_list |> filter_map (determine_next) in
-    let state_vars = expr_list |> filter_map (determine_var scope next_vars) in
+    let state_vars = expr_list |> filter_map (determine_var scope next_vars sort_map) in
     let state_var_instance_map = (
         List.map (fun x -> (StateVar.name_of_state_var x, Var.mk_state_var_instance x Numeral.zero)) state_vars
         @ List.map (fun x -> (fst x, Var.mk_state_var_instance (List.find (fun y -> snd x = StateVar.name_of_state_var y) state_vars) Numeral.one)) next_vars
@@ -221,9 +228,11 @@ let trans_sys_of_vmt
         |> List.hd
     in
 
+    let sort_map = filter_map (fun x -> match x with | Ast.DefineSort (_, ident, _, Ast.Sort(_, sort)) -> Some (ident, sort) | _ -> None) expr_list in
+
     let scope = ["Main"] in (* TODO: determine how to get the name for the scope *)
 
-    let state_vars, svi_map = create_map_instances_and_vars expr_list scope in
+    let state_vars, svi_map = create_map_instances_and_vars expr_list scope sort_map in
 
     let init_expr, trans_expr, properties = find_spec_exprs expr_list svi_map in
     let init_term : Term.t = snd init_expr in
