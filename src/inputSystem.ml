@@ -76,7 +76,9 @@ let ordered_scopes_of (type s) : s t -> Scope.t list = function
 
   | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv 1")
 
-  | Vmt subsystem ->[["Main"]]
+  | Vmt subsystem ->
+    S.all_subsystems subsystem
+    |> List.map (fun { S.scope } -> scope)
 
 (* Uid generator for test generation params.
 
@@ -194,8 +196,25 @@ let next_analysis_of_strategy (type s)
          
   | Horn subsystem -> (function _ -> assert false)
   | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv 3")
-  | Vmt _ -> (
-    fun results -> (
+  | Vmt subsystem -> (
+    fun results ->
+      let subs_of_scope scope =
+        let { S.subsystems } = S.find_subsystem subsystem scope in
+        subsystems
+        |> List.map (
+          fun ({ S.scope } as sub) ->
+            scope, S.strategy_info_of sub
+        )
+      in
+      if Analysis.results_length results > 0 
+      then
+        S.all_subsystems subsystem
+        |> List.map (
+          fun ({ S.scope } as sub) ->
+            scope, S.strategy_info_of sub
+        )
+        |> Strategy.next_analysis results subs_of_scope
+      else 
         let scope = ["Main"] in
         let info = {
           Analysis.top= scope;
@@ -204,7 +223,6 @@ let next_analysis_of_strategy (type s)
           Analysis.assumptions= Scope.Map.empty;
         } in
         Some (Analysis.First (info))
-    )
   )
 
 
@@ -299,7 +317,9 @@ let pp_print_path_pt
 
   | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 7")
 
-  | Vmt _ -> raise (UnsupportedFileFormat "VMT 6")
+  | Vmt subsystem -> 
+    Format.eprintf "pp_print_path_pt not implemented for native input@.";
+    ()
 
 
 let pp_print_path_xml

@@ -242,7 +242,7 @@ and eval_operation pos op term_list env =
                 | _ -> Error (InvalidTypeWithOperator (pos, _type, "abs"))
     )
     | (op, Ok (_type, _)) -> Error (InvalidOperator (pos, op))
-    | (_, Error error) -> Error error (* TODO: write the logic for dealing with operators and the type given to them *)
+    | (_, Error error) -> Error error
 
 
 and eval_term_list term_list env pos = 
