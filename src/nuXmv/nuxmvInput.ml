@@ -18,6 +18,8 @@
 
 type output = NuxmvAst.t
 
+exception Parser_error
+
 type parse_error =
   | UnexpectedChar of Position.t * char
   | SyntaxError of Position.t
@@ -25,18 +27,22 @@ type parse_error =
   | NextExprError of Position.t
   | DoubleNextExprError of Position.t
   | RangeLowerValueError of Position.t
-  | ExpectedTypeError of Position.t (* *nuxmv_ast_type list * nuxmv_ast_type *)
-  | NonMatchingTypeError of Position.t (* *nuxmv_ast_type * nuxmv_ast_type *)
-  | MissingVariableError of Position.t (* *string *)
-  | VariableAlreadyDefinedError of Position.t (* *nuxmv_ast_type * nuxmv_ast_type *)
-  | EnumValueExistenceError of Position.t (* *string *)
-  | EnumNotContainValue of Position.t (* * string *)
+  | ExpectedTypeError of Position.t * NuxmvChecker.nuxmv_ast_type list * NuxmvChecker.nuxmv_ast_type 
+  | NonMatchingTypeError of Position.t * NuxmvChecker.nuxmv_ast_type * NuxmvChecker.nuxmv_ast_type 
+  | MissingVariableError of Position.t *string 
+  | VariableAlreadyDefinedError of Position.t * string
+  | EnumValueExistenceError of Position.t *string 
+  | EnumNotContainValue of Position.t * string 
   | MainModuleMissing of Position.t
-  | MissingModule of Position.t (* * string *)
-  | ModuleCalledTooManyArgs of Position.t (* * int * int *)
-  | ModuleCalledMissingArgs of Position.t (* * int * int *)
+  | MissingModule of Position.t * string 
+  | ModuleCalledTooManyArgs of Position.t * int * int 
+  | ModuleCalledMissingArgs of Position.t * int * int
   | AccessOperatorAppliedToNonModule of Position.t
   | MainModuleHasParams of Position.t
+
+let fail_at_position_pt pos msg =
+  Log.log Lib.L_error "Parser error at %a: @[<v>%s@]"
+    Position.pp_print_position pos msg
 
 let parse_buffer lexbuf : (output, parse_error) result =
   try
@@ -49,16 +55,16 @@ let parse_buffer lexbuf : (output, parse_error) result =
         | NuxmvChecker.CheckOk -> (
           let type_res = NuxmvChecker.type_eval abstract_syntax in 
             match type_res with
-            | Error (NuxmvChecker.Expected (pos, _, _ )) -> Error (ExpectedTypeError pos)
-            | Error (NuxmvChecker.NonMatching (pos, _, _) ) -> Error (NonMatchingTypeError pos)
-            | Error (NuxmvChecker.MissingVariable (pos, _) ) -> Error (MissingVariableError pos)
-            | Error (NuxmvChecker.VariableAlreadyDefined (pos, _) ) -> Error (VariableAlreadyDefinedError pos)
-            | Error (NuxmvChecker.EnumValueExist (pos, _) ) -> Error (EnumValueExistenceError pos)
-            | Error (NuxmvChecker.EnumNotContain (pos, _) ) -> Error (EnumNotContainValue pos)
+            | Error (NuxmvChecker.Expected (pos, tl, t )) -> Error (ExpectedTypeError (pos, tl, t))
+            | Error (NuxmvChecker.NonMatching (pos, t1, t2) ) -> Error (NonMatchingTypeError (pos, t1, t2) )
+            | Error (NuxmvChecker.MissingVariable (pos, str) ) -> Error (MissingVariableError (pos, str))
+            | Error (NuxmvChecker.VariableAlreadyDefined (pos, str) ) -> Error (VariableAlreadyDefinedError (pos, str))
+            | Error (NuxmvChecker.EnumValueExist (pos, str) ) -> Error (EnumValueExistenceError (pos, str))
+            | Error (NuxmvChecker.EnumNotContain (pos, str) ) -> Error (EnumNotContainValue (pos, str))
             | Error (NuxmvChecker.MainError pos )-> Error (MainModuleMissing pos)
-            | Error (NuxmvChecker.MissingModule (pos, _) ) -> Error (MissingModule pos)
-            | Error (NuxmvChecker.ModuleCallTooMany (pos, _, _) ) -> Error (ModuleCalledTooManyArgs pos)
-            | Error (NuxmvChecker.ModuleCallMissing (pos, _, _) ) -> Error (ModuleCalledMissingArgs pos)
+            | Error (NuxmvChecker.MissingModule (pos, str) ) -> Error (MissingModule (pos, str))
+            | Error (NuxmvChecker.ModuleCallTooMany (pos, i1, i2) ) -> Error (ModuleCalledTooManyArgs (pos, i1, i2) )
+            | Error (NuxmvChecker.ModuleCallMissing (pos, i1, i2)  ) -> Error (ModuleCalledMissingArgs (pos, i1, i2) )
             | Error (NuxmvChecker.AccessOperatorAppliedToNonModule pos)  -> Error (AccessOperatorAppliedToNonModule pos)
             | Error (NuxmvChecker.MainModuleHasParams pos ) -> Error (MainModuleHasParams pos)
             | Ok env -> Ok (abstract_syntax) 
@@ -80,8 +86,121 @@ let from_file filename =
                                 Lexing.pos_fname = filename };
   parse_buffer lexbuf
 
+let rec print_type_list _type_list = 
+  match _type_list with
+  | [] -> ""
+  | hd :: tail -> (
+    let str_hd = print_type hd in
+    let str_tail = print_type_list tail in
+    if String.length str_tail > 0 
+      then str_hd ^ "; " ^ str_tail
+      else str_hd
+  )
+
+and print_type _type = 
+  match _type with
+  | NuxmvChecker.IntT -> "Int"
+  | NuxmvChecker.SymbolicT -> "Enum Symbol"
+  | NuxmvChecker.FloatT -> "Float"
+  | NuxmvChecker.EnumT lst-> "Enum of (" ^ print_type_list (List.map snd lst) ^")" 
+  | NuxmvChecker.ArrayT lst -> "Array of ("^ print_type_list lst^")"
+  | NuxmvChecker.BoolT -> "Bool"
+  | NuxmvChecker.SetT lst -> "Set of ("^ print_type_list lst^")"
+  | NuxmvChecker.ModuleInstance _ -> "Module"
+
 let of_file filename = 
   match from_file filename with
   | Ok res -> { SubSystem.scope = [] ; source = res ; has_contract = false ; has_modes = false ; has_impl = false ; subsystems = [] }
-  | Error _ -> failwith "NuXmv parsing/semantic check/type check error."
-
+  | Error error ->(
+    match error with
+    | UnexpectedChar (pos, char) -> (
+      fail_at_position_pt pos 
+        ("unexpected character ‘"^ (String.make 1 char) ^ "’") 
+      ; raise (Parser_error)
+    )
+    | SyntaxError (pos) -> (
+      fail_at_position_pt pos 
+        "syntax error" 
+      ; raise (Parser_error)
+    )
+    | LtlUseError (pos) -> (
+      fail_at_position_pt pos 
+        ("Invalid use of Ltl Expression")
+      ; raise (Parser_error)
+    )
+    | NextExprError (pos) -> (
+      fail_at_position_pt pos 
+        ("Invalid use of next expression")
+      ; raise (Parser_error)
+    )
+    | DoubleNextExprError (pos) -> (
+      fail_at_position_pt pos 
+        ("Cannot use a next expression inside a next expression")
+      ; raise (Parser_error)
+    )
+    | RangeLowerValueError (pos) -> (
+      fail_at_position_pt pos 
+        ("Lower bound of range must be less than or equal to upper bound")
+      ; raise (Parser_error)
+    )
+    | ExpectedTypeError (pos, _type_list, _type) -> (
+      fail_at_position_pt pos 
+        ("Given type "^print_type _type^" not in the list of allowed types "^ print_type_list _type_list^" for operation")
+      ; raise (Parser_error)
+    )
+    | NonMatchingTypeError (pos, t1, t2) -> (
+      fail_at_position_pt pos 
+        ("Type " ^ print_type t1^ " not equal to type " ^ print_type t2)
+      ; raise (Parser_error)
+    )
+    | MissingVariableError (pos, str) -> (
+      fail_at_position_pt pos 
+        ("Identifier '"^ str ^"' is missing")
+      ; raise (Parser_error)
+    )
+    | VariableAlreadyDefinedError (pos, str) -> (
+      fail_at_position_pt pos 
+        ("Variable " ^ str ^ " already defined in namespace")
+      ; raise (Parser_error)
+    )
+    | EnumValueExistenceError (pos, str) -> (
+      fail_at_position_pt pos 
+        ("Enum value "^str^" already exists in enum namespace")
+      ; raise (Parser_error)
+    )
+    | EnumNotContainValue (pos, str) -> (
+      fail_at_position_pt pos 
+        ("Enum does not contain value "^str)
+      ; raise (Parser_error)
+    )
+    | MainModuleMissing (pos) -> (
+      fail_at_position_pt pos 
+        ("Main module is missing from given input")
+      ; raise (Parser_error)
+    )
+    | MissingModule (pos, str) -> (
+      fail_at_position_pt pos 
+        ("Module "^ str ^" is not defined")
+      ; raise (Parser_error)
+    )
+    | ModuleCalledTooManyArgs (pos, i1, i2) -> (
+      fail_at_position_pt pos 
+        ("Module called with too many arguments, " ^(string_of_int i1)^ " expected and " ^ (string_of_int i2) ^" given")
+      ; raise (Parser_error)
+    )
+    | ModuleCalledMissingArgs (pos, i1, i2) -> (
+      fail_at_position_pt pos 
+        ("Module called missing arguments, " ^(string_of_int i1)^ " expected and " ^ (string_of_int i2) ^" given")
+      ; raise (Parser_error)
+    )
+    | AccessOperatorAppliedToNonModule (pos) -> (
+      fail_at_position_pt pos 
+        ("Access operator applied to a non-module instance")
+      ; raise (Parser_error)
+    )
+    | MainModuleHasParams (pos) -> (
+      fail_at_position_pt pos 
+        ("Main module is not allowed to be defined with parameters")
+      ; raise (Parser_error)
+    )
+  )

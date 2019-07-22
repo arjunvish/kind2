@@ -98,7 +98,7 @@ let setup : unit -> any_input = fun () ->
       KEvent.terminate_log () ;
       exit ExitCodes.error
   with (* Could not create input system. *)
-  | LustreAst.Parser_error | VmtInput.Parser_error ->
+  | LustreAst.Parser_error | VmtInput.Parser_error | NuxmvInput.Parser_error ->
     (* Don't do anything for parser error, they should already have printed
     some stuff. *)
     KEvent.terminate_log () ;
