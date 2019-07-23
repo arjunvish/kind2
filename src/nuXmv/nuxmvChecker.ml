@@ -19,6 +19,7 @@ type semantic_error_type =
     | NextExpr of Position.t
     | DoubleNextExpr of Position.t
     | RangeLowerValue of Position.t
+    | NotSupported of Position.t * string
 
 type nuxmv_ast_type = 
     | IntT
@@ -72,7 +73,8 @@ let rec s_eval_expr (ltl: bool) (next:bool) (expr: A.nuxmv_expr) : semantic_erro
     | A.CInt _ -> CheckOk
     | A.CFloat _ -> CheckOk
     | A.Ident (_, ci) -> s_eval_complex_id ci
-    | A.CRange (p, i1, i2) -> if i1 <= i2 then CheckOk else CheckError (RangeLowerValue (p))
+    | A.CRange (p, _, _) -> CheckError (NotSupported (p, "Constant Range Expression"))
+    (* | A.CRange (p, i1, i2) -> if i1 <= i2 then CheckOk else CheckError (RangeLowerValue (p)) *)
     (* | A.Call (_, ci, nel) -> (
         let result1 = s_eval_complex_id ci in
         match result1 with

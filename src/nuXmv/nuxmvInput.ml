@@ -39,6 +39,7 @@ type parse_error =
   | ModuleCalledMissingArgs of Position.t * int * int
   | AccessOperatorAppliedToNonModule of Position.t
   | MainModuleHasParams of Position.t
+  | NotSupportedError of Position.t * string
 
 let fail_at_position_pt pos msg =
   Log.log Lib.L_error "Parser error at %a: @[<v>%s@]"
@@ -52,6 +53,7 @@ let parse_buffer lexbuf : (output, parse_error) result =
         | NuxmvChecker.CheckError (NuxmvChecker.NextExpr pos ) -> Error (NextExprError pos)
         | NuxmvChecker.CheckError (NuxmvChecker.DoubleNextExpr pos ) -> Error (DoubleNextExprError pos)
         | NuxmvChecker.CheckError (NuxmvChecker.RangeLowerValue pos ) -> Error (RangeLowerValueError pos)
+        | NuxmvChecker.CheckError (NuxmvChecker.NotSupported (pos, str) ) -> Error (NotSupportedError (pos, str))
         | NuxmvChecker.CheckOk -> (
           let type_res = NuxmvChecker.type_eval abstract_syntax in 
             match type_res with
@@ -201,6 +203,11 @@ let of_file filename =
     | MainModuleHasParams (pos) -> (
       fail_at_position_pt pos 
         ("Main module is not allowed to be defined with parameters")
+      ; raise (Parser_error)
+    )
+    | NotSupportedError(pos, str) -> (
+      fail_at_position_pt pos 
+        (str ^ " is currently not supported by Kind2 for the Nuxmv language")
       ; raise (Parser_error)
     )
   )

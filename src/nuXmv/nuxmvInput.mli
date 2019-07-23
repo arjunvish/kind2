@@ -39,6 +39,7 @@ type parse_error =
   | ModuleCalledMissingArgs of Position.t * int * int
   | AccessOperatorAppliedToNonModule of Position.t
   | MainModuleHasParams of Position.t 
+  | NotSupportedError of Position.t * string
 
 val fail_at_position_pt: Position.t -> string -> unit
 

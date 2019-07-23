@@ -19,6 +19,7 @@ type semantic_error_type =
     | NextExpr of Position.t
     | DoubleNextExpr of Position.t
     | RangeLowerValue of Position.t
+    | NotSupported of Position.t * string
 
 type nuxmv_ast_type = 
     | IntT
