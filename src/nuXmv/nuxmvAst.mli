@@ -49,6 +49,7 @@ type nuxmv_expr =
     | CaseExp of Position.t * (nuxmv_expr * nuxmv_expr) list
     | IfThenElseExp of Position.t * nuxmv_expr * nuxmv_expr * nuxmv_expr
     | NextExp of Position.t * nuxmv_expr
+    | InclExp of Position.t * nuxmv_expr * nuxmv_expr
     | NextState of Position.t * nuxmv_expr
     | Globally of Position.t * nuxmv_expr
     | Finally of Position.t * nuxmv_expr
@@ -108,7 +109,7 @@ type module_element =
     | DefineDecl of Position.t * define_element list
     | AssignConst of Position.t * assign_const list
     | TransConst of Position.t * expr_type
-    | InvarSpec of Position.t * expr_type 
+    | InvarConst of Position.t * expr_type 
     | LtlSpec of Position.t * expr_type
 
 type nuxmv_module = 

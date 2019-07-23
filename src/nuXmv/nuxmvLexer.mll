@@ -61,6 +61,7 @@ rule token = parse
   | 'O'                { P.O }
   | 'S'                { P.S }
   | 'T'                { P.T }
+  | "in"               { P.IN }
   | "case"             { P.CASE }
   | "esac"             { P.ESAC }
   | "boolean"          { P.BOOL }
