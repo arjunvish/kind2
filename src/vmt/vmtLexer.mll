@@ -49,7 +49,7 @@ let symbol = simple_symbol | '|' [^'|']* '|'
 
 let index = numeral | symbol
 
-let identifier = symbol | '(' '_' symbol index+ ')'
+let identifier = symbol | "(_ " symbol ' ' index+ ')'
 
 rule token = parse
 (* Keywords *)

@@ -25,6 +25,19 @@ type vmt_error =
     | NonMatchingTypes of Position.t * string * string
     | NotSupported of Position.t * string
 
+type vmt_type = 
+    | BoolT
+    | IntT
+    | RealT
+    | BitVecT of int
+
+let type_to_string _type =
+    match _type with
+    | BoolT -> "Bool"
+    | IntT -> "Int"
+    | RealT -> "Real"
+    | BitVecT n -> "BitVec " ^ (string_of_int n)
+
 let filter_map (f : ('a -> 'b option)) (l : 'a list) : 'b list =
     l |> List.map f 
       |> List.filter (fun x -> match x with None -> false | _ -> true)
@@ -50,9 +63,11 @@ let rec eval_sort sort sort_env =
         | Some (id, type_list) -> Ok type_list
         | None -> (
             match str with
-            | "Bool" -> Ok "Bool"
-            | "Int" -> Ok "Int"
-            | "Real" -> Ok "Real"
+            | "Bool" -> Ok BoolT
+            | "Int" -> Ok IntT
+            | "Real" -> Ok RealT
+            | "(_ BitVec 1)" -> Ok (BitVecT 1)
+            | "(_ BitVec 32)" -> Ok (BitVecT 32)
             | _ -> Error ( InvalidType (pos, str) )
         )
     )
@@ -82,7 +97,7 @@ let rec eval_sorted_var_list sorted_var_list local_env sort_env =
         )
     )
 
-let rec check_attribute_list attribute_list term_type env pos: ((string * (string * string) list), vmt_error) result =
+let rec check_attribute_list attribute_list term_type env pos =
     match attribute_list with
     | [] -> Error (MissingAttribute pos)
     | attribute :: [] -> (
@@ -93,7 +108,7 @@ let rec check_attribute_list attribute_list term_type env pos: ((string * (strin
                 let env' = (n_ident, term_type) :: env in
                 Ok (term_type, env')
             )
-            | n_type :: _ -> if n_type = term_type then Ok (n_type, env) else Error (InvalidType (n_pos, n_type))
+            | n_type :: _ -> if n_type = term_type then Ok (n_type, env) else Error (InvalidType (n_pos, type_to_string n_type))
         )
         | A.InitTrue p -> Ok (term_type, env)
         | A.TransTrue p -> Ok (term_type, env)
@@ -111,7 +126,7 @@ let rec check_attribute_list attribute_list term_type env pos: ((string * (strin
             | n_type :: _ -> (
                 if n_type = term_type 
                     then check_attribute_list tail term_type env pos
-                    else Error (InvalidType (n_pos, n_type))
+                    else Error (InvalidType (n_pos, type_to_string n_type))
             )
         )   
         | A.InitTrue p -> check_attribute_list tail term_type env pos
@@ -124,13 +139,19 @@ let rec eval_term term env =
     match term with
     | A.Ident (pos, ident) -> (
         match filter_map (fun x -> if fst x = ident then Some (snd x) else None) env with
-        | [] -> Error (MissingIdentifier (pos, ident))
+        | [] -> (
+            match ident with 
+            | "(_ bv0 32)" -> Ok (BitVecT 32, env) 
+            | "(_ bv1 32)" -> Ok (BitVecT 32, env)
+            | "(_ bv10 32)" -> Ok (BitVecT 32, env)
+            | _ -> Error (MissingIdentifier (pos, ident))
+        )
         | var_type :: _ -> Ok (var_type, env)
     )
-    | A.Integer (pos, int) -> Ok ("Int", env)
-    | A.Real (pos, float) -> Ok ("Real", env)
-    | A.True (pos) -> Ok ("Bool", env)
-    | A.False (pos) -> Ok ("Bool", env)
+    | A.Integer (pos, int) -> Ok (IntT, env)
+    | A.Real (pos, float) -> Ok (RealT, env)
+    | A.True (pos) -> Ok (BoolT, env)
+    | A.False (pos) -> Ok (BoolT, env)
     | A.Operation (pos, op, term_list) -> (
         match eval_operation pos op term_list env with
         | Ok (res_type, env') -> Ok (res_type, env')
@@ -172,74 +193,88 @@ let rec eval_term term env =
 
 and eval_operation pos op term_list env = 
     match (op, eval_term_list term_list env pos) with
-    | ("not", Ok ("Bool", env')) -> (
+    | ("not", Ok (_type, env')) -> (
         let len = List.length term_list in
         if len > 1 
             then Error (InvalidArgCount (pos, 1, len))
-            else Ok ("Bool", env')
+            else 
+                match _type with
+                | BoolT -> Ok (BoolT, env')
+                | BitVecT n -> Ok (BitVecT n, env)
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op)) 
     )
-    | ("not",Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("or", Ok ("Bool", env')) -> Ok ("Bool", env')
-    | ("or", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("and", Ok ("Bool", env')) -> Ok ("Bool", env')
-    | ("and", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("xor", Ok ("Bool", env')) -> Ok ("Bool", env')
-    | ("xor", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("to_real", Ok (_type, env')) when _type = "Int" -> Ok ("Real", env')
-    | ("to_real", Ok (_type, env')) when _type = "Real" -> Ok ("Real", env')
-    | ("to_real", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("to_int", Ok (_type, env')) when _type = "Int" -> Ok ("Int", env')
-    | ("to_int", Ok (_type, env')) when _type = "Real" -> Ok ("Int", env')
-    | ("to_int", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("is_int", Ok (_type, env')) when _type = "Int" -> Ok ("Bool", env')
-    | ("is_int", Ok (_type, env')) when _type = "Real" -> Ok ("Bool", env')
-    | ("is_int", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("=", Ok (_type, env')) when _type = "Bool" -> Ok (_type, env')
-    | ("=", Ok (_type, env')) when _type = "Int" -> Ok ("Bool", env')
-    | ("=", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("<=", Ok (_type, env')) when _type = "Int" -> Ok ("Bool", env')
-    | ("<=", Ok (_type, env')) when _type = "Real" -> Ok ("Bool", env')
-    | ("<=", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("<", Ok (_type, env')) when _type = "Int" -> Ok ("Bool", env')
-    | ("<", Ok (_type, env')) when _type = "Real" -> Ok ("Bool", env')
-    | ("<", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | (">=", Ok (_type, env')) when _type = "Int" -> Ok ("Bool", env')
-    | (">=", Ok (_type, env')) when _type = "Real" -> Ok ("Bool", env')
-    | (">=", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | (">", Ok (_type, env')) when _type = "Int" -> Ok ("Bool", env')
-    | (">", Ok (_type, env')) when _type = "Real" -> Ok ("Bool", env')
-    | (">", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("-", Ok (_type, env')) when _type = "Int" -> Ok (_type, env')
-    | ("-", Ok (_type, env')) when _type = "Real" -> Ok (_type, env')
-    | ("-", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("+", Ok (_type, env')) when _type = "Int" -> Ok (_type, env')
-    | ("+", Ok (_type, env')) when _type = "Real" -> Ok (_type, env')
-    | ("+", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
-    | ("*", Ok (_type, env')) when _type = "Int" -> Ok (_type, env')
-    | ("*", Ok (_type, env')) when _type = "Real" -> Ok (_type, env')
-    | ("*", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op)) 
-    | ("//", Ok (_type, env')) when _type = "Int" -> Ok ("Real", env')
-    | ("//", Ok (_type, env')) when _type = "Real" -> Ok (_type, env')
-    | ("//", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op)) 
-    | ("/", Ok (_type, env')) when _type = "Int" -> Ok (_type, env')
-    | ("/", Ok (_type, env')) when _type = "Real" -> Ok ("Int", env')
-    | ("/", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op)) 
-    | ("mod", Ok (_type, env')) when _type = "Int" -> (
+    | ("or", Ok (BoolT, env')) -> Ok (BoolT, env')
+    | ("or", Ok (BitVecT n, env')) -> Ok (BitVecT n, env')
+    | ("or", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("and", Ok (BoolT, env')) -> Ok (BoolT, env')
+    | ("and", Ok (BitVecT n, env')) -> Ok (BitVecT n, env')
+    | ("and", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("xor", Ok (BoolT, env')) -> Ok (BoolT, env')
+    | ("xor", Ok (BitVecT n, env')) -> Ok (BitVecT n, env')
+    | ("xor", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("to_real", Ok (_type, env')) when _type = IntT -> Ok (RealT, env')
+    | ("to_real", Ok (_type, env')) when _type = RealT -> Ok (RealT, env')
+    | ("to_real", Ok (BitVecT _, env')) -> Ok (RealT, env')
+    | ("to_real", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("to_int", Ok (_type, env')) when _type = IntT -> Ok (IntT, env')
+    | ("to_int", Ok (_type, env')) when _type = RealT -> Ok (IntT, env')
+    | ("to_int", Ok (BitVecT _, env')) -> Ok (IntT, env')
+    | ("to_int", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("is_int", Ok (_type, env')) when _type = IntT -> Ok (BoolT, env')
+    | ("is_int", Ok (_type, env')) when _type = RealT -> Ok (BoolT, env')
+    | ("is_int", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("=", Ok (_type, env')) when _type = BoolT -> Ok (_type, env')
+    | ("=", Ok (_type, env')) when _type = IntT -> Ok (BoolT, env')
+    | ("=", Ok (_type, env')) when _type = RealT -> Ok (BoolT, env')
+    | ("=", Ok (BitVecT _, env')) -> Ok (BoolT, env')
+    | ("=", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("<=", Ok (_type, env')) when _type = IntT -> Ok (BoolT, env')
+    | ("<=", Ok (_type, env')) when _type = RealT -> Ok (BoolT, env')
+    | ("<=", Ok (BitVecT _, env'))-> Ok (BoolT, env')
+    | ("<=", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("<", Ok (_type, env')) when _type = IntT -> Ok (BoolT, env')
+    | ("<", Ok (_type, env')) when _type = RealT -> Ok (BoolT, env')
+    | ("<", Ok (BitVecT _, env'))-> Ok (BoolT, env')
+    | ("<", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | (">=", Ok (_type, env')) when _type = IntT -> Ok (BoolT, env')
+    | (">=", Ok (_type, env')) when _type = RealT -> Ok (BoolT, env')
+    | (">=", Ok (BitVecT _, env')) -> Ok (BoolT, env')
+    | (">=", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | (">", Ok (_type, env')) when _type = IntT -> Ok (BoolT, env')
+    | (">", Ok (_type, env')) when _type = RealT -> Ok (BoolT, env')
+    | (">", Ok (BitVecT _, env'))-> Ok (BoolT, env')
+    | (">", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("-", Ok (_type, env')) when _type = IntT -> Ok (_type, env')
+    | ("-", Ok (_type, env')) when _type = RealT -> Ok (_type, env')
+    | ("-", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("+", Ok (_type, env')) when _type = IntT -> Ok (_type, env')
+    | ("+", Ok (_type, env')) when _type = RealT -> Ok (_type, env')
+    | ("+", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
+    | ("*", Ok (_type, env')) when _type = IntT -> Ok (_type, env')
+    | ("*", Ok (_type, env')) when _type = RealT -> Ok (_type, env')
+    | ("*", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op)) 
+    | ("//", Ok (_type, env')) when _type = IntT -> Ok (RealT, env')
+    | ("//", Ok (_type, env')) when _type = RealT -> Ok (_type, env')
+    | ("//", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op)) 
+    | ("/", Ok (_type, env')) when _type = IntT -> Ok (_type, env')
+    | ("/", Ok (_type, env')) when _type = RealT -> Ok (IntT, env')
+    | ("/", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op)) 
+    | ("mod", Ok (_type, env')) when _type = IntT -> (
         let len = List.length term_list in
         if len <> 2 
             then Error (InvalidArgCount (pos, 2, len))
-            else Ok ("Int", env')
+            else Ok (IntT, env')
     )
-    | ("mod", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, _type, op))
+    | ("mod", Ok (_type, _)) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, op))
     | ("abs", Ok (_type, env')) -> (
         let len = List.length term_list in
         if len <> 2 
             then Error (InvalidArgCount (pos, 2, len))
             else 
                 match _type with
-                | "Int" -> Ok ("Int", env')
-                | "Real" -> Ok (_type, env')
-                | _ -> Error (InvalidTypeWithOperator (pos, _type, "abs"))
+                | IntT -> Ok (IntT, env')
+                | RealT -> Ok (_type, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "abs"))
     )
     | (op, Ok (_type, _)) -> Error (InvalidOperator (pos, op))
     | (_, Error error) -> Error error
@@ -258,7 +293,7 @@ and eval_term_list term_list env pos =
         | (Ok (term_type, _), Ok (list_type, _)) -> (
             if term_type = list_type 
                 then Ok (term_type, env)
-                else Error (NonMatchingTypes (pos, term_type, list_type))
+                else Error (NonMatchingTypes (pos, type_to_string term_type, type_to_string list_type))
         )
     )
 
@@ -281,7 +316,7 @@ let eval_expr expr env sort_env =
         | (_, Ok local_env, Ok return_type) -> (
             match eval_term term local_env with
             | Ok (return_type', env') when return_type' = return_type -> Ok (((ident, return_type) :: env'), sort_env)
-            | Ok (return_type', _ ) -> Error (InvalidType (pos, return_type'))
+            | Ok (return_type', _ ) -> Error (InvalidType (pos, type_to_string return_type'))
             | Error error -> Error error
         )
     )
@@ -299,8 +334,8 @@ let eval_expr expr env sort_env =
     | A.SetOption (pos, ident, att) -> Error (NotSupported (pos, "SetOption")) 
     | A.Assert (pos, term) -> (
         match eval_term term env with
-        | Ok ("Bool", env') -> Ok (env', sort_env)
-        | Ok (wrong_type, _) -> Error (InvalidType (pos, wrong_type))
+        | Ok (BoolT, env') -> Ok (env', sort_env)
+        | Ok (wrong_type, _) -> Error (InvalidType (pos, type_to_string wrong_type))
         | Error error -> Error error
     )
 
