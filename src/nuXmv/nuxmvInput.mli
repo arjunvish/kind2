@@ -16,7 +16,7 @@
 
 (** @author Daniel Larraz *)
 
-type output = NuxmvAst.t
+type output = NuxmvAst.t * NuxmvChecker.env
 
 exception Parser_error
 
@@ -46,5 +46,5 @@ val from_channel: in_channel -> (output, parse_error) result
 
 val from_file: string -> (output, parse_error) result
 
-val of_file : string -> NuxmvAst.t SubSystem.t
+val of_file : string -> (NuxmvAst.t * NuxmvChecker.env) SubSystem.t
 
