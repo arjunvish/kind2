@@ -107,10 +107,11 @@ let rec s_eval_expr (ltl: bool) (next:bool) (expr: A.nuxmv_expr) : semantic_erro
         match s_eval_expr ltl next e1 with
         | CheckOk -> s_eval_expr ltl next e2
         | r1 -> r1)
-    | A.Equiv (_, e1, e2) -> (
+    | A.Equiv (p, _, _) -> CheckError (NotSupported (p, "Equivalence Expression"))
+    (* | A.Equiv (_, e1, e2) -> (
         match s_eval_expr ltl next e1 with
         | CheckOk -> s_eval_expr ltl next e2
-        | r1 -> r1) 
+        | r1 -> r1)  *)
     | A.Eq (_, e1, e2) -> (
         match s_eval_expr ltl next e1 with
         | CheckOk -> s_eval_expr ltl next e2
@@ -191,6 +192,7 @@ let rec s_eval_expr (ltl: bool) (next:bool) (expr: A.nuxmv_expr) : semantic_erro
             (match e with 
             | A.NextExp _ -> CheckError (DoubleNextExpr (p))
             | _ -> s_eval_expr ltl next e))
+    | A.InclExp (p, e1, e2) -> CheckError (NotSupported (p, "Inclusion operator not supported"))
     | A.NextState (p, e) -> 
         if not ltl then CheckError (LtlUse (p))
         else s_eval_expr ltl next e
@@ -238,16 +240,18 @@ let rec s_eval_expr (ltl: bool) (next:bool) (expr: A.nuxmv_expr) : semantic_erro
 
 and s_eval_expr_type (expr_type: A.expr_type) : semantic_error_type check_result = 
     match expr_type with
-    | A.LtlExpr (_, expr) -> s_eval_expr true false expr
+    (* | A.LtlExpr (_, expr) -> s_eval_expr true false expr *)
+    | A.LtlExpr (p, _) -> CheckError (NotSupported (p, "Lifeness Property Expressions"))
     | A.InvarExpr(_, expr) -> s_eval_expr false false expr
     | A.NextExpr (_, expr) -> s_eval_expr false true expr
     | A.SimpleExpr (_, expr) -> s_eval_expr false false expr
-    | A.ArrayExpr (_, etl) -> (
+    | A.ArrayExpr (p,_) -> CheckError (NotSupported (p, "Array expressions"))
+    (* | A.ArrayExpr (_, etl) -> (
         let result_list = List.map s_eval_expr_type etl in
         match find_opt (fun x -> x != CheckOk) result_list with
         | None -> CheckOk
         | Some e -> e
-    )
+    ) *)
 
 and s_eval_complex_id (ci: A.comp_ident):  semantic_error_type check_result =
     match ci with
@@ -297,7 +301,7 @@ let s_eval_module_element (me : A.module_element): semantic_error_type check_res
     | A.DefineDecl (_, del) -> s_eval_define_decl del
     | A.AssignConst (_, acl) -> s_eval_assign_const acl
     | A.TransConst (_, expr_type) -> s_eval_expr_type expr_type
-    | A.InvarSpec (_, expr_type) -> s_eval_expr_type expr_type
+    | A.InvarConst (_, expr_type) -> s_eval_expr_type expr_type
     | A.LtlSpec (_, expr_type) -> s_eval_expr_type expr_type
 
 let rec semantic_eval (ml:A.nuxmv_module list) : semantic_error_type check_result = 
@@ -561,12 +565,27 @@ let rec t_eval_expr (in_enum : (bool * env)) (env : env) (expr: A.nuxmv_expr)  :
             | _ -> assert false
         )
     )
-    | A.IfThenElseExp (p, e1, e2, e3) -> Ok BoolT (* TODO: Finish this up when have time, added as an extra but no test fragments use it*) 
+    | A.IfThenElseExp (p, e1, e2, e3) ->(
+        match (t_eval_expr in_enum env e1, t_eval_expr in_enum env e2, t_eval_expr in_enum env e3) with
+        | (Error e, _, _) -> Error e
+        | (_, Error e, _) -> Error e
+        | (_, _, Error e) -> Error e
+        | (Ok t1, Ok t2, Ok t3) -> (
+            if t1 = BoolT 
+            then
+                if t2 = t3 then Ok t2
+                else 
+                    Error (NonMatching (p, t2, t3))
+            else
+                Error (Expected (p, [BoolT], t1))
+        )
+    ) 
     | A.NextExp (p, e) -> (
         match t_eval_expr in_enum env e with
         | Ok t -> Ok t
         | e -> e
     )
+    | A.InclExp (p, e1, e2) -> assert false
     | A.NextState (p, e) ->  (
         match t_eval_expr in_enum env e with
         | Ok BoolT -> Ok BoolT
@@ -887,7 +906,7 @@ and t_eval_module_element (env : env) (me : A.module_element) (mod_def : A.nuxmv
         | Ok _ -> Ok env
         | Error e -> Error e
     )
-    | A.InvarSpec (_, expr_type) -> (
+    | A.InvarConst (_, expr_type) -> (
         match t_eval_expr_type (false, []) env expr_type with
         | Ok _ -> Ok env
         | Error e -> Error e
