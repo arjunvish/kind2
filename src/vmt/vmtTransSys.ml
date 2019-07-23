@@ -185,7 +185,7 @@ let determine_var scope next_vars sort_map expr: StateVar.t option =
                     | Some (_, "Int") -> Type.mk_int ()
                     | Some (_, "Real") -> Type.mk_real ()
                     | _ -> match str with
-                            (* change these to creaete type bv when that becomes available *)
+                            (* change these to create type bv when that becomes available *)
                            | "(_ BitVec 32)" -> Type.mk_int ()
                            | "(_ BitVec 1)" -> Type.mk_int ()
                            | _ -> assert false
