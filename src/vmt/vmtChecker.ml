@@ -57,19 +57,18 @@ match (l,ll) with
 
 let rec eval_sort sort sort_env =
     match sort with
-    | A.Sort (pos, str) ->(
+    | A.AmbiguousType (pos, str) -> (
         let sort_exist = find_opt (fun x -> if fst x = str then true else false) sort_env in
         match sort_exist with
         | Some (id, type_list) -> Ok type_list
-        | None -> (
-            match str with
-            | "Bool" -> Ok BoolT
-            | "Int" -> Ok IntT
-            | "Real" -> Ok RealT
-            | "(_ BitVec 1)" -> Ok (BitVecT 1)
-            | "(_ BitVec 32)" -> Ok (BitVecT 32)
-            | _ -> Error ( InvalidType (pos, str) )
-        )
+        | None -> Error ( InvalidType (pos, str))
+    )
+    | A.BoolType (_) -> Ok BoolT
+    | A.RealType (_) -> Ok RealT
+    | A.IntType (_) -> Ok IntT
+    | A.BitVecType (pos, int) -> (
+        if int < 1 then Error ( InvalidType (pos, ("BitVec " ^ (string_of_int int))))
+        else Ok (BitVecT int)
     )
     | A.MultiSort (pos, str, sort_list) -> Error (NotSupported (pos, "MutliSort")) (* TODO: Not currently supported becasue don't know how to handle it *)
 
@@ -139,19 +138,14 @@ let rec eval_term term env =
     match term with
     | A.Ident (pos, ident) -> (
         match filter_map (fun x -> if fst x = ident then Some (snd x) else None) env with
-        | [] -> (
-            match ident with 
-            | "(_ bv0 32)" -> Ok (BitVecT 32, env) 
-            | "(_ bv1 32)" -> Ok (BitVecT 32, env)
-            | "(_ bv10 32)" -> Ok (BitVecT 32, env)
-            | _ -> Error (MissingIdentifier (pos, ident))
-        )
+        | [] -> Error (MissingIdentifier (pos, ident))
         | var_type :: _ -> Ok (var_type, env)
     )
     | A.Integer (pos, int) -> Ok (IntT, env)
     | A.Real (pos, float) -> Ok (RealT, env)
     | A.True (pos) -> Ok (BoolT, env)
     | A.False (pos) -> Ok (BoolT, env)
+    | A.BitVecConst (pos, _, int) -> Ok (BitVecT int, env)
     | A.Operation (pos, op, term_list) -> (
         match eval_operation pos op term_list env with
         | Ok (res_type, env') -> Ok (res_type, env')
@@ -275,6 +269,16 @@ and eval_operation pos op term_list env =
                 | IntT -> Ok (IntT, env')
                 | RealT -> Ok (_type, env')
                 | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "abs"))
+    )
+    | ("bvadd", Ok (_type, env')) -> (
+        match _type with
+        | BitVecT _ -> Ok (_type, env')
+        | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvadd"))
+    )
+    | ("bvslt", Ok (_type, env')) -> (
+        match _type with
+        | BitVecT _ -> Ok (BoolT, env')
+        | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
     )
     | (op, Ok (_type, _)) -> Error (InvalidOperator (pos, op))
     | (_, Error error) -> Error error

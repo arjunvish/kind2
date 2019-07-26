@@ -34,13 +34,18 @@ and term =
     | Real of Position.t * float
     | True of Position.t
     | False of Position.t
+    | BitVecConst of Position.t * int * int
     | Operation of Position.t * string * term list
     | AttributeTerm of Position.t * term * attribute list
     | Let of Position.t * param list * term
 
 type sort = 
-    | Sort of Position.t * string
-    | MultiSort of Position.t * string * sort list
+    | BoolType of Position.t
+    | IntType of Position.t
+    | RealType of Position.t
+    | BitVecType of Position.t * int
+    | AmbiguousType of Position.t * string
+    | MultiSort of Position.t * sort * sort list
 
 type sorted_var = 
     | SortedVar of Position.t * ident * sort

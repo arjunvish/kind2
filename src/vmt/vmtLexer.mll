@@ -49,7 +49,9 @@ let symbol = simple_symbol | '|' [^'|']* '|'
 
 let index = numeral | symbol
 
-let identifier = symbol | "(_ " symbol ' ' index+ ')'
+let bitvec = 'b''v' numeral
+
+let identifier = symbol
 
 rule token = parse
 (* Keywords *)
@@ -73,11 +75,21 @@ rule token = parse
   | ':'               { P.COLON }
   | '!'               { P.EXCL }
 
+  (* Types *)
+  | "Bool"            { P.BOOLT }
+  | "Int"             { P.INTT }
+  | "Real"            { P.REALT }
+  | '_'               { P.UNDERSCORE }
+  | "BitVec"          { P.BITVECT }
+
   (* Constants *)
   | "true"            { P.TRUE }
   | "false"           { P.FALSE }
   | numeral as int    { P.INT (int_of_string (int)) }
   | decimal as real   { P.REAL (float_of_string (real)) }
+  | bitvec as bv      { let len = String.length bv in 
+                        let num_str = String.sub bv 2 (len - 2) in
+                        P.BVCONST (int_of_string num_str) }
   | identifier as id  { P.ID id }
 
   (* Whitespace and New Line (both ignored) *)

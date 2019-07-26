@@ -36,9 +36,9 @@ let find_opt (func : ('a -> bool)) (lst: 'a list) : 'a option =
 let rec generate_full_expr ref_list svi_map term =
     match term with
     | Ast.Ident (pos, i) -> (
-        let id_res = find_opt (fun x -> match x with (id,rt,t) when i = id -> true| _ -> false) ref_list in 
+        let id_res = find_opt (fun x -> match x with (id,t) when i = id -> true| _ -> false) ref_list in 
         match id_res with
-        | Some (id, _, t) -> generate_full_expr ref_list svi_map t  
+        | Some (id, t) -> generate_full_expr ref_list svi_map t  
         | None -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
     )
     | Ast.Operation (pos, op, tl) -> (
@@ -68,6 +68,8 @@ let rec generate_full_expr ref_list svi_map term =
             | _ -> assert false
         )
         | "abs" -> Term.mk_abs (List.hd tl')
+        | "bvadd" -> Term.mk_plus tl' (* TODO: handling bv's as ints so we just change the bit vector add to plus? *)
+        | "bvslt" -> Term.mk_plus tl' (* TODO: handling bv's as ints so we just change the bv signed less than to lt *)
         | _ -> assert false
     )
     | Ast.AttributeTerm (pos, term, _) -> generate_full_expr ref_list svi_map term 
@@ -75,6 +77,7 @@ let rec generate_full_expr ref_list svi_map term =
     | Ast.False _ -> Term.mk_false ()
     | Ast.Integer (_, int) -> Term.mk_num_of_int int
     | Ast.Real (_, real) -> Term.mk_num_of_int (int_of_float real) (* TODO: figure out how to handle reals in internal system *)
+    | Ast.BitVecConst (_, v, s) -> Term.mk_num_of_int v (* TODO: currently just changing bit vectors to ints *)
     | Ast.Let (pos, vbl, term) -> (
         let create_var_term_bind vb = (
             match vb with
@@ -86,14 +89,7 @@ let rec generate_full_expr ref_list svi_map term =
         ) in
         let create_rflist_items vb = (
             match vb with
-            | Ast.VarBind (_, id, term') -> (
-                let pt_type = Term.type_of_term (generate_full_expr ref_list svi_map term') in
-                let rt = if Type.is_bool pt_type then "Bool"
-                         else if Type.is_int pt_type then "Int"
-                         else "Real"
-                in
-                (id, Ast.Sort(pos, rt), term)
-            )
+            | Ast.VarBind (_, id, term') ->(id, term)
         ) in
         let ref_list' = (List.map create_rflist_items vbl) @ ref_list in
         let term' = generate_full_expr ref_list' svi_map term in
@@ -104,14 +100,14 @@ let rec generate_full_expr ref_list svi_map term =
 let rec find_spec_exprs expr_list svi_map = 
     let ref_list = 
         filter_map 
-        (fun x -> match x with Ast.DefineFun (_, id, [], rt, term) -> Some (id, rt, term) | _ -> None) 
+        (fun x -> match x with Ast.DefineFun (_, id, [], rt, term) -> Some (id, term) | _ -> None) 
         expr_list 
     in
     
     let init_expr =
         let init_check x = 
             match x with 
-            | (id, rt, Ast.AttributeTerm (pos, term', prop_list)) -> (
+            | (id, Ast.AttributeTerm (pos, term', prop_list)) -> (
                 let find_init = fun x -> match x with Ast.InitTrue _ -> true | _ -> false in
                 match find_opt find_init prop_list with
                 | Some _ -> Some (id, generate_full_expr ref_list svi_map term')
@@ -125,7 +121,7 @@ let rec find_spec_exprs expr_list svi_map =
     let trans_expr =
         let trans_check x = 
             match x with 
-            | (id, rt, Ast.AttributeTerm (pos, term', prop_list)) -> (
+            | (id, Ast.AttributeTerm (pos, term', prop_list)) -> (
                 let find_trans = fun x -> match x with Ast.TransTrue _ -> true | _ -> false in
                 match find_opt find_trans prop_list with
                 | Some _ -> Some (id, generate_full_expr ref_list svi_map term')
@@ -140,7 +136,7 @@ let rec find_spec_exprs expr_list svi_map =
         let prop_status = P.PropUnknown in
         let prop_check x = 
             match x with 
-            | (_, rt, Ast.AttributeTerm (pos, term', prop_list )) -> (
+            | (_, Ast.AttributeTerm (pos, term', prop_list )) -> (
                 let find_invar = fun x -> match x with Ast.InvarProperty _ -> true | _ -> false in
                 match find_opt find_invar prop_list with
                 | None -> None
@@ -176,19 +172,17 @@ let determine_var scope next_vars sort_map expr: StateVar.t option =
         | None -> (
             let _type = (
                 match sort with
-                | Ast.Sort (_, "Bool") -> Type.mk_bool ()
-                | Ast.Sort (_, "Int") -> Type.mk_int ()
-                | Ast.Sort (_, "Real") -> Type.mk_real ()
-                | Ast.Sort (_, str) -> (
-                    match find_opt (fun x -> if (fst x) = str then true else false) sort_map with
-                    | Some (_, "Bool") -> Type.mk_bool ()
-                    | Some (_, "Int") -> Type.mk_int ()
-                    | Some (_, "Real") -> Type.mk_real ()
-                    | _ -> match str with
-                            (* change these to create type bv when that becomes available *)
-                           | "(_ BitVec 32)" -> Type.mk_int ()
-                           | "(_ BitVec 1)" -> Type.mk_int ()
-                           | _ -> assert false
+                | Ast.BoolType _ -> Type.mk_bool ()
+                | Ast.IntType _ -> Type.mk_int ()
+                | Ast.RealType _ -> Type.mk_real ()
+                | Ast.BitVecType _ -> Type.mk_int ()
+                | Ast.AmbiguousType (_, str) -> (
+                    match filter_map (fun x -> if (fst x) = str then Some (snd x) else None) sort_map |> List.hd with
+                    | Ast.BoolType _ -> Type.mk_bool ()
+                    | Ast.IntType _-> Type.mk_int ()
+                    | Ast.RealType _-> Type.mk_real ()
+                    | Ast.BitVecType _ -> Type.mk_int ()
+                    | _ -> assert false
                 ) 
                 | _ -> assert false                
             ) 
@@ -232,7 +226,7 @@ let trans_sys_of_vmt
         |> List.hd
     in
 
-    let sort_map = filter_map (fun x -> match x with | Ast.DefineSort (_, ident, _, Ast.Sort(_, sort)) -> Some (ident, sort) | _ -> None) expr_list in
+    let sort_map = filter_map (fun x -> match x with | Ast.DefineSort (_, ident, _, sort) -> Some (ident, sort) | _ -> None) expr_list in
 
     let scope = ["Main"] in (* TODO: determine how to get the name for the scope *)
 
