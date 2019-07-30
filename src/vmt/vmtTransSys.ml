@@ -68,8 +68,38 @@ let rec generate_full_expr ref_list svi_map term =
             | _ -> assert false
         )
         | "abs" -> Term.mk_abs (List.hd tl')
-        | "bvadd" -> Term.mk_plus tl' (* TODO: handling bv's as ints so we just change the bit vector add to plus? *)
-        | "bvslt" -> Term.mk_plus tl' (* TODO: handling bv's as ints so we just change the bv signed less than to lt *)
+        
+        (* all bitvectors currently being handled as ints *)
+        | "bvnot" -> Term.mk_not (List.hd tl')
+        | "bvand" -> Term.mk_and tl' 
+        | "bvor" -> Term.mk_or tl'  
+        | "bvneg" -> Term.mk_minus ((Term.mk_num_of_int (-1)) :: tl')
+        | "bvadd" -> Term.mk_plus tl' 
+        | "bvmul" -> Term.mk_times tl' 
+        | "bvudiv" -> Term.mk_div tl' (* TODO: change this to Bv unsigned division *)
+        | "bvshl" -> Term.mk_plus tl' (* TODO: change this to Bv Shift left operation *)
+        | "bvlshr" -> Term.mk_plus tl' (* TODO: change this to Bv logical Shift right operation *)
+        | "bvnand" -> Term.mk_not (Term.mk_and tl')
+        | "bvnor" -> Term.mk_not (Term.mk_or tl')
+        | "bvxor" -> Term.mk_xor tl' 
+        | "bvxnor" -> Term.mk_not (Term.mk_xor tl')
+        | "bvcomp" -> Term.mk_eq tl' 
+        | "bvsub" -> Term.mk_minus tl' 
+        | "bvsdiv" -> Term.mk_div tl' (* TODO: change this to Bv signed division *)
+        | "bvsmod" -> ( (* TODO: change this to Bv signed mod *)
+            match tl' with
+            | term1 :: term2 :: [] -> Term.mk_mod term1 term2
+            | _ -> assert false
+        ) 
+        | "bvashr" -> Term.mk_plus tl' (* TODO: change this to Bv arithmetic shift right *)
+        | "bvult" -> Term.mk_lt tl' (* TODO: change this to Bv unsigned lt *)
+        | "bvule" -> Term.mk_leq tl' (* TODO: change this to Bv unsigned lte *)
+        | "bvugt" -> Term.mk_gt tl' (* TODO: change this to Bv unsigned gt *)
+        | "bvuge" -> Term.mk_geq tl' (* TODO: change this to Bv unsigned gte *)
+        | "bvslt" -> Term.mk_lt tl' (* TODO: change this to Bv signed lt *)
+        | "bvsle" -> Term.mk_leq tl' (* TODO: change this to Bv signed lte *)
+        | "bvsgt" -> Term.mk_gt tl' (* TODO: change this to Bv signed gt *)
+        | "bvsge" -> Term.mk_geq tl'  (* TODO: change this to Bv signed gte *)
         | _ -> assert false
     )
     | Ast.AttributeTerm (pos, term, _) -> generate_full_expr ref_list svi_map term 
@@ -77,7 +107,7 @@ let rec generate_full_expr ref_list svi_map term =
     | Ast.False _ -> Term.mk_false ()
     | Ast.Integer (_, int) -> Term.mk_num_of_int int
     | Ast.Real (_, real) -> Term.mk_num_of_int (int_of_float real) (* TODO: figure out how to handle reals in internal system *)
-    | Ast.BitVecConst (_, v, s) -> Term.mk_num_of_int v (* TODO: currently just changing bit vectors to ints *)
+    | Ast.BitVecConst (_, v, s) -> Term.mk_num_of_int v (* currently just changing bit vectors to ints *)
     | Ast.Let (pos, vbl, term) -> (
         let create_var_term_bind vb = (
             match vb with

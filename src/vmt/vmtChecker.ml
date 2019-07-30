@@ -186,6 +186,15 @@ let rec eval_term term env =
     )
 
 and eval_operation pos op term_list env = 
+    let check_bv_oper_returns_bv _type env'= 
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT l -> Ok (BitVecT l, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvsdiv"))
+    in
     match (op, eval_term_list term_list env pos) with
     | ("not", Ok (_type, env')) -> (
         let len = List.length term_list in
@@ -270,15 +279,104 @@ and eval_operation pos op term_list env =
                 | RealT -> Ok (_type, env')
                 | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "abs"))
     )
-    | ("bvadd", Ok (_type, env')) -> (
-        match _type with
-        | BitVecT _ -> Ok (_type, env')
-        | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvadd"))
+    | ("bvnot", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT l -> Ok (BitVecT l, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvand", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvneg", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT l -> Ok (BitVecT l, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvadd", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvmul", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvudiv", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvurem", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvshl", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvlshr", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvult", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvnand", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvnor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvxor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvxnor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvcomp", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvsub", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvsdiv", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvsmod", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvashr", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    | ("bvule", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvugt", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvuge", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
     )
     | ("bvslt", Ok (_type, env')) -> (
-        match _type with
-        | BitVecT _ -> Ok (BoolT, env')
-        | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvsle", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvsgt", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
+    )
+    | ("bvsge", Ok (_type, env')) -> (
+        let len = List.length term_list in
+        if len <> 2 
+            then Error (InvalidArgCount (pos, 2, len))
+            else 
+                match _type with
+                | BitVecT _ -> Ok (BoolT, env')
+                | _ -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "bvslt"))
     )
     | (op, Ok (_type, _)) -> Error (InvalidOperator (pos, op))
     | (_, Error error) -> Error error
