@@ -45,10 +45,11 @@ rule token = parse
   | "DEFINE"           { P.DEFINE }
   | "ASSIGN"           { P.ASSIGN }
   | "TRANS"            { P.TRANS }
+  | "INIT"             { P.INITSPEC }
   | "INVARSPEC"        { P.INVAR }
   | "LTLSPEC"          { P.LTLSPEC }
  (* | "self"             { P.SELF } *)
-  | "init"             { P.INIT }
+  | "init"             { P.INITEXP }
   | "next"             { P.NEXT }
   | 'X'                { P.X }
   | 'G'                { P.G }
@@ -61,7 +62,7 @@ rule token = parse
   | 'O'                { P.O }
   | 'S'                { P.S }
   | 'T'                { P.T }
-  | "in"               { P.IN }
+  | "in"               { P.INCLUSION }
   | "case"             { P.CASE }
   | "esac"             { P.ESAC }
   | "boolean"          { P.BOOL }

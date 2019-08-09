@@ -108,6 +108,7 @@ type module_element =
     | StateVarDecl of Position.t * state_var_decl list
     | DefineDecl of Position.t * define_element list
     | AssignConst of Position.t * assign_const list
+    | InitConst of Position.t * expr_type
     | TransConst of Position.t * expr_type
     | InvarConst of Position.t * expr_type 
     | LtlSpec of Position.t * expr_type

@@ -26,7 +26,7 @@ exception Ltl_Use_Error
 %}
 
 
-%token MODULE VAR DEFINE ASSIGN TRANS INVAR LTLSPEC
+%token MODULE VAR DEFINE ASSIGN TRANS INITSPEC INVAR LTLSPEC
 %token X G F U V Y Z H O S T
 %token <string> ID
 %token <int> CINT
@@ -38,7 +38,7 @@ exception Ltl_Use_Error
 %token RARROW DARROW
 %token AND NOT OR XOR XNOR
 %token PLUS MINUS MOD MUL DIV
-%token NEXT INIT CASE ESAC IN
+%token NEXT INITEXP CASE ESAC INCLUSION
 (* %token SELF *)
 %token ASSIGNMENT
 %token LPAREN RPAREN LCURLBRACK RCURLBRACK LSQBRACK RSQBRACK
@@ -52,6 +52,7 @@ exception Ltl_Use_Error
 %left  OR XOR XNOR
 %left  AND
 %left  EQ NEQ LT GT LTE GTE
+%left  INCLUSION
 %left  PLUS MINUS
 %left  MUL DIV MOD
 %left  NOT
@@ -78,6 +79,7 @@ module_element:
  | dd = define_declaration { dd }
  | ac = assign_constraint { ac }
  | tc = trans_constraint { tc }
+ | ic = init_constraint { ic }
  | ivc = invar_constraint { ivc }
  | ltls = ltl_specification { ltls }
  
@@ -137,6 +139,8 @@ assign_element:
 (* Trans Constraints *)
 trans_constraint: TRANS e = next_expr option(SEMICOLON) { A.TransConst (mk_pos $startpos, e) } 
     ;
+
+init_constraint: INITSPEC e = simple_expr option(SEMICOLON) { A.InitConst (mk_pos $startpos, e) }
 
 (* Invar Constraints *)
 invar_constraint: INVAR e = invar_expr SEMICOLON { A.InvarConst (mk_pos $startpos, e) }
@@ -200,7 +204,7 @@ expr:
     | LCURLBRACK el = separated_nonempty_list(COMMA, expr) RCURLBRACK { A.SetExp (mk_pos $startpos, el) }
     | CASE cel = nonempty_list(case_element) ESAC { A.CaseExp (mk_pos $startpos, cel) }
     | e1 = expr THEN e2 = expr COLON e3 = expr { A.IfThenElseExp (mk_pos $startpos, e1, e2, e3) }
-    | e1 = expr IN e2 = expr { A.InclExp (mk_pos $startpos, e1, e2)}
+    | e1 = expr INCLUSION e2 = expr { A.InclExp (mk_pos $startpos, e1, e2)}
     | NEXT LPAREN e = expr RPAREN { A.NextExp (mk_pos $startpos, e)}
     
     (* Ltl Expressions*)

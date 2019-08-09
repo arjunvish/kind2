@@ -133,6 +133,7 @@ type module_element =
     | StateVarDecl of Position.t * state_var_decl list
     | DefineDecl of Position.t * define_element list
     | AssignConst of Position.t * assign_const list
+    | InitConst of Position.t * expr_type (* Next operation is not allowed *)
     | TransConst of Position.t * expr_type (* Next operation is allowed *)
     | InvarConst of Position.t * expr_type (* Next operation is not allowed *)
     | LtlSpec of Position.t * expr_type
@@ -357,6 +358,7 @@ let print_module_element (s:string) (me : module_element) : string =
                                 (List.fold_left print_state_var_decl newS svdl)
     | DefineDecl (_, del) -> s
     | AssignConst (_, acl) -> s
+    | InitConst _ -> s
     | TransConst (_, expr_type) -> s
     | InvarConst (_, expr_type) -> s
     | LtlSpec (_, expr_type) -> s
