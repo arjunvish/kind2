@@ -68,6 +68,7 @@ rule token = parse
   | ":trans"          { P.TRANS }
   | ":invar-property" { P.INVARPROP }
   | ":live-property"  { P.LIVEPROP }
+  | "extract"         { P.EXTRACT }
 
   (* Punctuation *)
   | '('               { P.LPAREN }
@@ -85,11 +86,11 @@ rule token = parse
   (* Constants *)
   | "true"            { P.TRUE }
   | "false"           { P.FALSE }
-  | numeral as int    { P.INT (int_of_string (int)) }
-  | decimal as real   { P.REAL (float_of_string (real)) }
+  | numeral as int    { P.INT (Numeral.of_string (int)) }
+  | decimal as real   { P.REAL (Decimal.of_string (real)) }
   | bitvec as bv      { let len = String.length bv in 
                         let num_str = String.sub bv 2 (len - 2) in
-                        P.BVCONST (int_of_string num_str) }
+                        P.BVCONST (Numeral.of_string num_str) }
   | identifier as id  { P.ID id }
 
   (* Whitespace and New Line (both ignored) *)
