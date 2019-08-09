@@ -73,7 +73,6 @@ let generate_term ref_list svi_map svi_next_map next_expr expr_type =
         | Ast.Multiply (_, e1, e2) -> Term.mk_times ((eval_expr next e1) :: [(eval_expr next e2)])
         | Ast.Divide (_, e1, e2) -> Term.mk_div ((eval_expr next e1) :: [(eval_expr next e2)])
         | Ast.Mod (_, e1, e2) -> Term.mk_mod (eval_expr next e1) (eval_expr next e2)
-        | Ast.SetExp (_, el) -> assert false
         | Ast.CaseExp (_, e_list) -> (
             let rec create_ite_terms e_list = 
                 match e_list with
@@ -85,11 +84,15 @@ let generate_term ref_list svi_map svi_next_map next_expr expr_type =
         )
         | Ast.IfThenElseExp (_, e1, e2, e3) -> Term.mk_ite (eval_expr next e1) (eval_expr next e2) (eval_expr next e3)
         | Ast.NextExp (_, e) -> eval_expr true e
+        (* TODO: Determine what to do with incl operator (only generated in trans sys creation) *)
+        (* | Ast.InclExp (_, e1, e2) -> (
+            let term_e1 = eval_expr next e1 in
+        ) *)
         | _ -> assert false
     in
     match expr_type with
     | Ast.InvarExpr (_, nuxmv_expr) -> eval_expr next_expr nuxmv_expr
-    | Ast.NextExpr (_, nuxmv_expr) -> eval_expr true nuxmv_expr
+    | Ast.NextExpr (_, nuxmv_expr) -> eval_expr next_expr nuxmv_expr
     | Ast.SimpleExpr (_, nuxmv_expr) -> eval_expr next_expr nuxmv_expr
     | Ast.ArrayExpr (_, nuxmv_expr_list) -> assert false
     | Ast.LtlExpr (_, nuxmv_expr) -> assert false
@@ -142,11 +145,109 @@ let generate_define_ref_list _module =
         | [] -> []
         | de :: tail -> (
             match de with
-            | Ast.SimpleDef (pos, id, et) -> (id, et ) :: (create_define_process_env tail)
-            | Ast.ArrayDef (pos, id, et) -> (id, et ) :: (create_define_process_env tail)
+            | Ast.SimpleDef (pos, id, et) -> (
+                let expr = (
+                    match et with 
+                    | Ast.SimpleExpr (_, e) -> e
+                    | Ast.NextExpr (_, e) -> e
+                    | Ast.InvarExpr (_, e) -> e
+                    | _ -> assert false
+                ) in (id, expr ) :: (create_define_process_env tail)
+            )
+            | Ast.ArrayDef (pos, id, et) -> (
+                let expr = (
+                    match et with 
+                    | Ast.SimpleExpr (_, e) -> e
+                    | Ast.NextExpr (_, e) -> e
+                    | Ast.InvarExpr (_, e) -> e
+                    | _ -> assert false
+                ) in (id, expr ) :: (create_define_process_env tail)
+            )
         )
     in
     create_define_process_env expr_list
+
+let generate_all_terms new_mod_expr_list ref_list svi_map svni_map env init_flag= 
+        let init_terms = 
+            let filtered = (
+                filter_map
+                    (fun x -> 
+                        match x with 
+                        | Ast.InitConst (_, expr_type) -> (
+                            let term = 
+                                generate_term ref_list svi_map svni_map false expr_type 
+                            in
+                            Some term
+                        )
+                        | _ -> None
+                    ) 
+                    new_mod_expr_list 
+            ) in
+            match filtered with
+            | [] -> assert false
+            | hd :: tail -> (
+                let new_hd = 
+                    Term.mk_let 
+                        [(Var.mk_state_var_instance init_flag TransSys.init_base, Term.mk_true ())] 
+                        hd 
+                in 
+                new_hd :: tail
+            )
+        in
+
+        let trans_terms = 
+            let filtered = (
+                filter_map
+                    (fun x -> 
+                        match x with 
+                        | Ast.TransConst (_, expr_type) -> (
+                            let term = 
+                                generate_term ref_list svi_map svni_map true expr_type 
+                            in
+                            Some term
+                        )
+                        | _ -> None
+                    ) 
+                    new_mod_expr_list 
+            ) in
+            match filtered with
+            | [] -> assert false
+            | hd :: tail -> (
+                let new_hd = 
+                    Term.mk_let 
+                        [(Var.mk_state_var_instance init_flag TransSys.trans_base, Term.mk_true ())] 
+                        hd 
+                in 
+                new_hd :: tail
+            )
+        in 
+        let prop_num = 0 in
+        let properties = 
+            let prop_status = P.PropUnknown in
+            filter_map
+                (fun x -> 
+                    match x with 
+                    | Ast.InvarConst (pos, expr_type) -> (
+                        let prop_term = 
+                            generate_term ref_list svi_map svni_map true expr_type 
+                        in
+                        let lib_pos = pos_of_file_row_col (pos.Position.fname, pos.Position.line, pos.Position.col) in
+                        let prop_source = P.PropAnnot (lib_pos) in
+                        let prop_name = string_of_int prop_num in
+                        let return_prop = 
+                        {   P.prop_name; 
+                            P.prop_source; 
+                            P.prop_term; 
+                            P.prop_status;  } 
+                        in
+                        prop_num <= prop_num + 1; Some (return_prop)
+                    )
+                    | _ -> None
+                ) 
+                new_mod_expr_list 
+        in
+
+        init_terms, trans_terms, properties
 
 let trans_sys_of_nuxmv
     ?(preserve_sig = false)
@@ -170,10 +271,16 @@ let trans_sys_of_nuxmv
             )
             custom_module_list
     in
+
+    let scope = ["Main"] in
+
+    let init_flag = StateVar.mk_init_flag ["main_init_flag"] in
+
     let state_vars = create_variables [] _module in
+
     let sv_instance_map, sv_next_instance_map = 
-    (List.map (fun x -> (StateVar.name_of_state_var x, Var.mk_state_var_instance x Numeral.zero)) state_vars
-    ), (List.map (fun x -> (StateVar.name_of_state_var x, Var.mk_state_var_instance x Numeral.one)) state_vars)
+        (List.map (fun x -> (StateVar.name_of_state_var x, Var.mk_state_var_instance x Numeral.zero)) state_vars)
+        , (List.map (fun x -> (StateVar.name_of_state_var x, Var.mk_state_var_instance x Numeral.one)) state_vars)
     in
 
     let ref_list = generate_define_ref_list _module  in
@@ -187,7 +294,14 @@ let trans_sys_of_nuxmv
                         filter_map
                             (fun x -> (
                                 match x with
-                                | Ast.InitAssign (_, ident, et) -> assert false
+                                | Ast.InitAssign (_, ident, et) -> (
+                                    match et with
+                                    | Ast.SimpleExpr (p, e) -> (
+                                        let inclusion_expr = Ast.InclExp (p, Ast.NextExp (p, Ast.Ident (p, Ast.CIdent(p,ident))),e) in
+                                        Some (Ast.InitConst (p, Ast.SimpleExpr (p, inclusion_expr)))
+                                    )
+                                    | _ -> assert false
+                                )
                                 | Ast.NextAssign (_, ident, et) -> (
                                     match et with
                                     | Ast.SimpleExpr (p, e) -> (
@@ -216,5 +330,141 @@ let trans_sys_of_nuxmv
             (match _module with Ast.CustomModule (_, _, list) -> list)
             |> List.fold_left (fun acc x -> acc @ x) [] 
     in
-    let init_expr_set = () in
+
+    let init_terms, trans_terms, properties = 
+        generate_all_terms 
+            new_module_expr_list 
+            ref_list
+            sv_instance_map
+            sv_next_instance_map
+            env
+            init_flag
+    in
+
+    let node_assumptions =
+        (* No assumptions if abstract. *)
+        if A.param_scope_is_abstract analysis_param scope then
+            Invs.empty ()
+        else
+            A.param_assumptions_of_scope analysis_param scope
+    in
+
+    let valid_prop_terms =
+        List.fold_left
+            (fun acc ({ P.prop_term } as p) ->
+                match Invs.find node_assumptions prop_term with
+                | None -> acc
+                | Some cert -> (
+                    P.set_prop_invariant p cert; (* Set property valid *)
+                    prop_term :: acc
+                )
+            )
+            [] 
+            properties
+    in
+
+    let init_terms, trans_terms =
+        (* Iterate over each valid property term *)
+        List.fold_left
+        (fun
+            (init_terms, trans_terms) prop_term ->
+
+            (* Bump term to offset of initial state constraint *)
+            let prop_term_init =
+                Term.bump_state
+                Numeral.(TransSys.init_base - TransSys.prop_base)
+                (Term.mk_implies [prop_term])
+            in
+
+            (* Bump term to offset of transition relation *)
+            let prop_term_trans =
+                Term.bump_state
+                Numeral.(TransSys.trans_base - TransSys.prop_base)
+                (Term.mk_implies [prop_term])
+            in
+
+                (* Add property as assertion *)
+                (prop_term_init :: init_terms,
+                prop_term_trans :: trans_terms)
+            )
+
+            (init_terms, trans_terms)
+
+        valid_prop_terms
+    in
+
+    (* Only one set of variables in the Vmt program and all are treated as output *)
+    let init_formals = 
+        List.map
+            (fun sv -> 
+                Var.mk_state_var_instance sv TransSys.init_base)
+            state_vars
+    in
+
+    let init_uf_symbol = 
+        UfSymbol.mk_uf_symbol
+            (Format.asprintf
+                "%s_%s_%d"
+                Ids.init_uf_string
+                "Vmt_Program"
+                (A.info_of_param analysis_param).A.uid)
+            (List.map Var.type_of_var init_formals)
+            Type.t_bool
+    in
+
+    (* Create instances of state variables in signature *)
+    let trans_formals = 
+        (* All state variables at the current instant. *)
+        List.map 
+            (fun sv ->
+                Var.mk_state_var_instance sv TransSys.trans_base)
+            state_vars 
+        @
+        (* Non-constant state variables at the previous instant *)
+        List.map 
+            (fun sv -> 
+                Var.mk_state_var_instance 
+                sv
+                (TransSys.trans_base |> Numeral.pred))
+            (List.filter
+                (fun sv -> not (StateVar.is_const sv)) 
+                state_vars)
+    in 
+
+    let trans_uf_symbol = 
+        UfSymbol.mk_uf_symbol
+            (Format.asprintf
+                "%s_%s_%d"
+                Ids.trans_uf_string
+                "vmt_program"
+                (A.info_of_param analysis_param).A.uid)
+            (List.map Var.type_of_var trans_formals)
+            Type.t_bool
+    in
+
+    let trans_sys, _ = 
+        TransSys.mk_trans_sys 
+            scope
+            None (* No instance variables *)
+            init_flag
+            [] (* global_state_vars *)
+            state_vars
+            (StateVar.StateVarHashtbl.create 0) (* state_var_bounds *)
+            [] (* Global Const *)
+            [] (* UFS *)
+            init_uf_symbol
+            init_formals
+            (Term.mk_and init_terms)
+            trans_uf_symbol
+            trans_formals
+            (Term.mk_and trans_terms)
+            [] (* Subsystems *)
+            properties
+            (None, []) (* mode_requires *)
+            (Invs.empty ()) (* invariants *)
+    in
+    (* trans_sys, subsystem *)
+
     ()
+
+    
