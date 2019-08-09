@@ -29,14 +29,14 @@ type vmt_type =
     | BoolT
     | IntT
     | RealT
-    | BitVecT of int
+    | BitVecT of Numeral.t
 
 let type_to_string _type =
     match _type with
     | BoolT -> "Bool"
     | IntT -> "Int"
     | RealT -> "Real"
-    | BitVecT n -> "BitVec " ^ (string_of_int n)
+    | BitVecT n -> "BitVec " ^ (Numeral.string_of_numeral n)
 
 let filter_map (f : ('a -> 'b option)) (l : 'a list) : 'b list =
     l |> List.map f 
@@ -66,9 +66,15 @@ let rec eval_sort sort sort_env =
     | A.BoolType (_) -> Ok BoolT
     | A.RealType (_) -> Ok RealT
     | A.IntType (_) -> Ok IntT
-    | A.BitVecType (pos, int) -> (
-        if int < 1 then Error ( InvalidType (pos, ("BitVec " ^ (string_of_int int))))
-        else Ok (BitVecT int)
+    | A.BitVecType (pos, num_int) -> (
+        let int = Numeral.to_int num_int in
+        match int with 
+        | 1 -> Ok (BitVecT num_int)
+        | 8 -> Ok (BitVecT num_int)
+        | 16 -> Ok (BitVecT num_int)
+        | 32 -> Ok (BitVecT num_int)
+        | 64 -> Ok (BitVecT num_int)
+        | _ -> Error ( InvalidType (pos, ("BitVec " ^ (Numeral.string_of_numeral num_int)))) 
     )
     | A.MultiSort (pos, str, sort_list) -> Error (NotSupported (pos, "MutliSort")) (* TODO: Not currently supported becasue don't know how to handle it *)
 
@@ -146,6 +152,17 @@ let rec eval_term term env =
     | A.True (pos) -> Ok (BoolT, env)
     | A.False (pos) -> Ok (BoolT, env)
     | A.BitVecConst (pos, _, int) -> Ok (BitVecT int, env)
+    | A.ExtractOperation (pos, first, last, term) -> (
+        match eval_term term env with
+        | Ok (BitVecT size, env') -> (
+            let extract_size = Numeral.add (Numeral.of_int 1) (Numeral.sub last first) in
+            if  extract_size > size 
+            then Error ( NonMatchingTypes (pos, type_to_string (BitVecT size), type_to_string (BitVecT extract_size)))
+            else Ok (BitVecT extract_size, env')
+        )
+        | Ok (_type, _) -> Error (InvalidTypeWithOperator (pos, type_to_string _type, "extract"))
+        | error -> error 
+    )
     | A.Operation (pos, op, term_list) -> (
         match eval_operation pos op term_list env with
         | Ok (res_type, env') -> Ok (res_type, env')

@@ -41,6 +41,7 @@ let rec generate_full_expr ref_list svi_map term =
         | Some (id, t) -> generate_full_expr ref_list svi_map t  
         | None -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
     )
+    | Ast.ExtractOperation (pos, start, finish, term) -> generate_full_expr ref_list svi_map term (* TODO: change this line to do the logic for extracting *)
     | Ast.Operation (pos, op, tl) -> (
         let tl' = List.map (generate_full_expr ref_list svi_map) tl in
         (* TODO: make this operation conversion exhasutive to all allowed terms in term.mli *)
@@ -105,9 +106,9 @@ let rec generate_full_expr ref_list svi_map term =
     | Ast.AttributeTerm (pos, term, _) -> generate_full_expr ref_list svi_map term 
     | Ast.True _ -> Term.mk_true ()
     | Ast.False _ -> Term.mk_false ()
-    | Ast.Integer (_, int) -> Term.mk_num_of_int int
-    | Ast.Real (_, real) -> Term.mk_num_of_int (int_of_float real) (* TODO: figure out how to handle reals in internal system *)
-    | Ast.BitVecConst (_, v, s) -> Term.mk_num_of_int v (* currently just changing bit vectors to ints *)
+    | Ast.Integer (_, num) -> Term.mk_num num
+    | Ast.Real (_, dec) -> Term.mk_dec dec
+    | Ast.BitVecConst (_, v, s) -> Term.mk_num v (* currently just changing bit vectors to ints *)
     | Ast.Let (pos, vbl, term) -> (
         let create_var_term_bind vb = (
             match vb with
@@ -174,7 +175,7 @@ let rec find_spec_exprs expr_list svi_map =
                     let lib_pos = pos_of_file_row_col (pos.Position.fname, pos.Position.line, pos.Position.col) in
                     let prop_term = generate_full_expr ref_list svi_map term' in
                     let prop_source = P.PropAnnot (lib_pos) in
-                    let prop_name = string_of_int prop_num in
+                    let prop_name = Numeral.string_of_numeral prop_num in
                     let return_prop = 
                     {   P.prop_name; 
                         P.prop_source; 
@@ -265,7 +266,7 @@ let trans_sys_of_vmt
     let init_expr, trans_expr, properties = find_spec_exprs expr_list svi_map in
     let init_term : Term.t = snd init_expr in
     let trans_term : Term.t = snd trans_expr in
-              (* Filter assumptions for this node's assumptions *)
+    (* Filter assumptions for this node's assumptions *)
     let node_assumptions =
         (* No assumptions if abstract. *)
         if A.param_scope_is_abstract analysis_param scope then
