@@ -300,6 +300,7 @@ let s_eval_module_element (me : A.module_element): semantic_error_type check_res
     | A.StateVarDecl (_, svdl) -> s_eval_state_var_decl svdl
     | A.DefineDecl (_, del) -> s_eval_define_decl del
     | A.AssignConst (_, acl) -> s_eval_assign_const acl
+    | A.InitConst (_, expr_type) -> s_eval_expr_type expr_type
     | A.TransConst (_, expr_type) -> s_eval_expr_type expr_type
     | A.InvarConst (_, expr_type) -> s_eval_expr_type expr_type
     | A.LtlSpec (_, expr_type) -> s_eval_expr_type expr_type
@@ -713,7 +714,12 @@ let rec t_eval_enum_var_decl (etvl: A.enum_type_value list) : (((string * nuxmv_
              Ok lst -> 
                 if List.exists (exist id) lst 
                 then Error (EnumValueExist (pos, id))
-                else Ok ((id, SymbolicT) :: lst)
+                else (
+                    match lst with
+                    | [] -> Ok ((id, SymbolicT) :: [])
+                    | hd :: t -> if (snd hd) = SymbolicT then Ok ((id, SymbolicT) :: lst)
+                                 else Error (Expected (pos, [SymbolicT], (snd hd)))
+                )
             | error -> error)
         | A.ETCInt (pos, v) -> (
             let res = t_eval_enum_var_decl tail in
@@ -721,7 +727,12 @@ let rec t_eval_enum_var_decl (etvl: A.enum_type_value list) : (((string * nuxmv_
              Ok lst -> 
                 if List.exists (exist (string_of_int v) ) lst 
                 then Error (EnumValueExist (pos, string_of_int v ))
-                else Ok ((string_of_int v, IntT) :: lst)
+                else (
+                    match lst with
+                    | [] -> Ok ((string_of_int v, IntT) :: [])
+                    | hd :: t -> if (snd hd) = SymbolicT then Ok ((string_of_int v, IntT) :: lst)
+                                 else Error (Expected (pos, [IntT], (snd hd)))
+                )
             | error -> error))
 
 let rec set_param_values (param_ids : string list) (natl : nuxmv_ast_type list) (finished_env: env) : env =
@@ -901,14 +912,22 @@ and t_eval_module_element (env : env) (me : A.module_element) (mod_def : A.nuxmv
         t_process_define_variables env unprocessed_env
     )
     | A.AssignConst (_, acl) -> t_eval_assign_const env acl
-    | A.TransConst (_, expr_type) -> (
+    | A.InitConst (pos, expr_type) -> (
         match t_eval_expr_type (false, []) env expr_type with
-        | Ok _ -> Ok env
+        | Ok BoolT -> Ok env
+        | Ok _type -> Error (Expected (pos, [BoolT], _type))
         | Error e -> Error e
     )
-    | A.InvarConst (_, expr_type) -> (
+    | A.TransConst (pos, expr_type) -> (
         match t_eval_expr_type (false, []) env expr_type with
-        | Ok _ -> Ok env
+        | Ok BoolT -> Ok env
+        | Ok _type -> Error (Expected (pos, [BoolT], _type))
+        | Error e -> Error e
+    )
+    | A.InvarConst (pos, expr_type) -> (
+        match t_eval_expr_type (false, []) env expr_type with
+        | Ok BoolT -> Ok env
+        | Ok _type -> Error (Expected (pos, [BoolT], _type))
         | Error e -> Error e
     )
     | A.LtlSpec (_, expr_type) -> (
