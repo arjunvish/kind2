@@ -22,20 +22,21 @@ type attribute =
     | NextName of Position.t * ident
     | InitTrue of Position.t
     | TransTrue of Position.t
-    | InvarProperty of Position.t * int
-    | LiveProperty of Position.t * int
+    | InvarProperty of Position.t * Numeral.t
+    | LiveProperty of Position.t * Numeral.t
 
 type param = 
     | VarBind of Position.t * string * term
 
 and term = 
     | Ident of Position.t * ident
-    | Integer of Position.t * int
-    | Real of Position.t * float
+    | Integer of Position.t * Numeral.t
+    | Real of Position.t * Decimal.t
     | True of Position.t
     | False of Position.t
-    | BitVecConst of Position.t * int * int
+    | BitVecConst of Position.t * Numeral.t * Numeral.t
     | Operation of Position.t * string * term list
+    | ExtractOperation of Position.t * Numeral.t * Numeral.t * term
     | AttributeTerm of Position.t * term * attribute list
     | Let of Position.t * param list * term
 
@@ -43,7 +44,7 @@ type sort =
     | BoolType of Position.t
     | IntType of Position.t
     | RealType of Position.t
-    | BitVecType of Position.t * int
+    | BitVecType of Position.t * Numeral.t
     | AmbiguousType of Position.t * string
     | MultiSort of Position.t * sort * sort list
 
@@ -53,7 +54,7 @@ type sorted_var =
 type vmt_expr = 
     | DeclareFun of Position.t * ident * sort list * sort
     | DefineFun of Position.t * ident * sorted_var list * sort * term
-    | DeclareSort of Position.t * ident * int
+    | DeclareSort of Position.t * ident * Numeral.t
     | DefineSort of Position.t * ident * ident list * sort
     | SetLogic of Position.t * ident
     | SetOption of Position.t * ident * attribute
