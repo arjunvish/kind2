@@ -130,7 +130,7 @@ assign_constraint: ASSIGN ael = nonempty_list(assign_element) { A.AssignConst (m
     ;
 
 assign_element:
-    | INIT LPAREN id = ID RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.InitAssign (mk_pos $startpos, id, e) }
+    | INITEXP LPAREN id = ID RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.InitAssign (mk_pos $startpos, id, e) }
     | NEXT LPAREN id = ID RPAREN ASSIGNMENT e = simple_expr SEMICOLON { A.NextAssign (mk_pos $startpos, id, e) }
     | id = ID ASSIGNMENT e = next_expr { A.Assign (mk_pos $startpos, id, e) }
     ;
