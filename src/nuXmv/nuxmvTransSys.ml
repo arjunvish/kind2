@@ -167,7 +167,7 @@ let generate_define_ref_list _module =
     in
     create_define_process_env expr_list
 
-let generate_all_terms new_mod_expr_list ref_list svi_map svni_map env init_flag= 
+let generate_all_terms new_mod_expr_list ref_list svi_map svni_map init_flag= 
         let init_terms = 
             let filtered = (
                 filter_map
@@ -255,11 +255,10 @@ let trans_sys_of_nuxmv
     subsystem analysis_param
     =
 
-    let custom_module_list, env = 
+    let custom_module_list = 
         SubSystem.all_subsystems subsystem
         |> List.map (function { SubSystem.source } -> source) 
         |> List.hd 
-        |> function x -> fst x, snd x
     in
 
     let _module = 
@@ -337,7 +336,6 @@ let trans_sys_of_nuxmv
             ref_list
             sv_instance_map
             sv_next_instance_map
-            env
             init_flag
     in
 
@@ -463,8 +461,6 @@ let trans_sys_of_nuxmv
             (None, []) (* mode_requires *)
             (Invs.empty ()) (* invariants *)
     in
-    (* trans_sys, subsystem *)
-
-    ()
+    trans_sys, subsystem
 
     

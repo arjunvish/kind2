@@ -19,6 +19,5 @@
 val trans_sys_of_nuxmv : 
     ?preserve_sig:bool ->
     ?slice_nodes:bool -> 
-    (NuxmvAst.t * NuxmvChecker.env) SubSystem.t -> Analysis.param ->
-    unit
-    (* TransSys.t * (NuxmvAst.t * NuxmvChecker.env) SubSystem.t *)
+    NuxmvAst.t SubSystem.t -> Analysis.param ->
+    TransSys.t * NuxmvAst.t SubSystem.t

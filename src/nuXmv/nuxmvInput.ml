@@ -16,7 +16,7 @@
 
 (** @author Daniel Larraz *)
 
-type output = NuxmvAst.t * NuxmvChecker.env
+type output = NuxmvAst.t
 
 exception Parser_error
 
@@ -69,7 +69,7 @@ let parse_buffer lexbuf : (output, parse_error) result =
             | Error (NuxmvChecker.ModuleCallMissing (pos, i1, i2)  ) -> Error (ModuleCalledMissingArgs (pos, i1, i2) )
             | Error (NuxmvChecker.AccessOperatorAppliedToNonModule pos)  -> Error (AccessOperatorAppliedToNonModule pos)
             | Error (NuxmvChecker.MainModuleHasParams pos ) -> Error (MainModuleHasParams pos)
-            | Ok env -> NuxmvTransSys.trans_sys_of_nuxmv |> ignore; Ok (abstract_syntax, env) 
+            | Ok _ -> Ok abstract_syntax 
           )
   with 
   | NuxmvLexer.Unexpected_Char c ->

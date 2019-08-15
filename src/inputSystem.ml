@@ -31,7 +31,7 @@ type _ t =
 | Lustre : (LustreNode.t S.t * LustreGlobals.t) -> LustreNode.t t
 | Native : TransSys.t S.t -> TransSys.t t
 | Horn : unit S.t -> unit t
-| NuXmv : (NuxmvAst.t * NuxmvChecker.env) S.t -> NuxmvAst.t t
+| NuXmv : NuxmvAst.t S.t -> NuxmvAst.t t
 | Vmt : VmtAst.t S.t -> VmtAst.t t
 
 let read_input_vmt input_file = Vmt (VmtInput.of_file input_file)
@@ -288,15 +288,15 @@ let trans_sys_of_analysis (type s) ?(preserve_sig = false)
     
   | Horn _ -> assert false
 
-  | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 6")
-  (* | NuXmv subsystem -> (
+  (* | NuXmv _ -> raise (UnsupportedFileFormat "NuXmv 6") *)
+  | NuXmv subsystem -> (
     function analysis ->
         let t,s = 
             NuxmvTransSys.trans_sys_of_nuxmv
               ~preserve_sig ~slice_nodes subsystem analysis
         in
-        t, Nuxmv (s)
-    ) *)
+        t, NuXmv (s)
+    )
 
   | Vmt (subsystem) -> (
     function analysis ->
