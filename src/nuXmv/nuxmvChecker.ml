@@ -353,7 +353,7 @@ let rec t_eval_expr (in_enum : (bool * env)) (env : env) (expr: A.nuxmv_expr)  :
     match expr with
     | A.True _ -> Ok BoolT
     | A.False _ -> Ok BoolT
-    | A.CInt (pos, i) -> if fst in_enum then t_eval_expr in_enum env (A.Ident (pos, A.CIdent( pos, string_of_int i))) else Ok IntT
+    | A.CInt (pos, i) -> if fst in_enum then t_eval_expr in_enum env (A.Ident (pos, A.CIdent( pos, Numeral.string_of_numeral i))) else Ok IntT
     | A.CFloat _ -> Ok FloatT
     | A.Ident (p, ci) -> t_eval_complex_id in_enum env ci
     | A.CRange (p, i1, i2) -> Ok IntT (*TODO: ask Daniel if changing Ranges to Ints make sense for type checking purposes *)
@@ -725,12 +725,12 @@ let rec t_eval_enum_var_decl (etvl: A.enum_type_value list) : (((string * nuxmv_
             let res = t_eval_enum_var_decl tail in
             match res with
              Ok lst -> 
-                if List.exists (exist (string_of_int v) ) lst 
-                then Error (EnumValueExist (pos, string_of_int v ))
+                if List.exists (exist (Numeral.string_of_numeral v) ) lst 
+                then Error (EnumValueExist (pos, Numeral.string_of_numeral v ))
                 else (
                     match lst with
-                    | [] -> Ok ((string_of_int v, IntT) :: [])
-                    | hd :: t -> if (snd hd) = SymbolicT then Ok ((string_of_int v, IntT) :: lst)
+                    | [] -> Ok ((Numeral.string_of_numeral v, IntT) :: [])
+                    | hd :: t -> if (snd hd) = SymbolicT then Ok ((Numeral.string_of_numeral v, IntT) :: lst)
                                  else Error (Expected (pos, [IntT], (snd hd)))
                 )
             | error -> error))

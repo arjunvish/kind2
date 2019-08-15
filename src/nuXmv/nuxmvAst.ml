@@ -24,10 +24,10 @@ type nuxmv_expr =
     (* Values *)
     | True of Position.t
     | False of Position.t
-    | CInt of Position.t * int
-    | CFloat of Position.t * float
+    | CInt of Position.t * Numeral.t
+    | CFloat of Position.t * Decimal.t
     | Ident of Position.t * comp_ident
-    | CRange of Position.t * int * int
+    | CRange of Position.t * Numeral.t * Numeral.t
 
     (* Function Call *)
     (* | Call of Position.t * comp_ident * nuxmv_expr list *)
@@ -104,13 +104,13 @@ type expr_type =
 
 type enum_type_value = 
     | ETId of Position.t * ident
-    | ETCInt of Position.t * int
+    | ETCInt of Position.t * Numeral.t
 
 type simple_type_spec = 
     | Bool of Position.t
     | Int of Position.t
     | Real of Position.t
-    | IntRange of Position.t * int * int
+    | IntRange of Position.t * Numeral.t * Numeral.t
     | EnumType of Position.t * (enum_type_value) list (* Assert that it is either an indent or cint*)
 
 type module_type_specifier = 
@@ -337,14 +337,14 @@ let s_eval_module_element (me : A.module_element): semantic_error_type check_res
 let print_enum_type_value (s: string) (etv: enum_type_value) : string =
     match etv with
     | ETId (_, id) -> s ^ id ^ "," 
-    | ETCInt (_, i) -> s ^ (string_of_int i) ^ ","
+    | ETCInt (_, i) -> s ^ (Numeral.string_of_numeral i) ^ ","
 
 let print_simple_type_spec (sts : simple_type_spec) : string =
     match sts with
     | Int _ -> "Int"
     | Bool _ -> "Bool"
     | Real _ -> "Real"
-    | IntRange (_, i1, i2) -> (string_of_int i1) ^ ".." ^ (string_of_int i2)
+    | IntRange (_, i1, i2) -> (Numeral.string_of_numeral i1) ^ ".." ^ (Numeral.string_of_numeral i2)
     | EnumType (_, etvl) -> (List.fold_left print_enum_type_value "[" etvl) ^ "]"
 
 let print_state_var_decl (s: string) (svd : state_var_decl) : string =

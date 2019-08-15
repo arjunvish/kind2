@@ -38,8 +38,8 @@ let generate_term ref_list svi_map svi_next_map next_expr expr_type =
         match expr with
         | Ast.True _ -> Term.mk_true ()
         | Ast.False _ -> Term.mk_false ()
-        | Ast.CInt (_, i) -> Term.mk_num_of_int i
-        | Ast.CFloat (_, f) -> Term.mk_num_of_int (int_of_float f) (* TODO: figure out how to handle reals in internal system *)
+        | Ast.CInt (_, i) -> Term.mk_num i
+        | Ast.CFloat (_, f) -> Term.mk_dec f
         (* Not allowing multiple modules as of now which means we don't need to allow Period Identifiers *)
         | Ast.Ident (_, Ast.CIdent (_, i)) -> (
             let id_res = find_opt (fun x -> match x with (id,t) when i = id -> true| _ -> false) ref_list in 
@@ -115,11 +115,11 @@ let create_variables scope main_module =
                 | Ast.Bool _ -> Type.mk_bool ()
                 | Ast.Int _ -> Type.mk_int ()
                 | Ast.Real _ -> Type.mk_real ()
-                | Ast.IntRange (_, i1, i2) -> Type.mk_int_range (Numeral.of_int i1) (Numeral.of_int i2)
+                | Ast.IntRange (_, i1, i2) -> Type.mk_int_range i1 i2
                 | Ast.EnumType (_, etvl) -> (
                     let val_strings = 
                         List.map 
-                            (fun x -> match x with Ast.ETId (_, str) -> str | Ast.ETCInt (_, i) -> string_of_int i)
+                            (fun x -> match x with Ast.ETId (_, str) -> str | Ast.ETCInt (_, i) -> Numeral.string_of_numeral i)
                             etvl
                     in
                     Type.mk_enum None val_strings

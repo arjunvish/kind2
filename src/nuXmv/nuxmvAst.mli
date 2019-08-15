@@ -21,10 +21,10 @@ type ident = string
 type nuxmv_expr = 
     | True of Position.t
     | False of Position.t
-    | CInt of Position.t * int
-    | CFloat of Position.t * float
+    | CInt of Position.t * Numeral.t
+    | CFloat of Position.t * Decimal.t
     | Ident of Position.t * comp_ident
-    | CRange of Position.t * int * int
+    | CRange of Position.t * Numeral.t * Numeral.t
     (* | Call of Position.t * comp_ident * nuxmv_expr list *)
     | Not of Position.t * nuxmv_expr
     | And of Position.t * nuxmv_expr * nuxmv_expr
@@ -79,13 +79,13 @@ type expr_type =
 
 type enum_type_value = 
     | ETId of Position.t * ident
-    | ETCInt of Position.t * int
+    | ETCInt of Position.t * Numeral.t
 
 type simple_type_spec = 
     | Bool of Position.t
     | Int of Position.t
     | Real of Position.t
-    | IntRange of Position.t * int * int
+    | IntRange of Position.t * Numeral.t * Numeral.t
     | EnumType of Position.t * (enum_type_value) list 
 
 type module_type_specifier = 

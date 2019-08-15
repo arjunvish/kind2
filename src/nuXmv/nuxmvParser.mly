@@ -29,8 +29,8 @@ exception Ltl_Use_Error
 %token MODULE VAR DEFINE ASSIGN TRANS INITSPEC INVAR LTLSPEC
 %token X G F U V Y Z H O S T
 %token <string> ID
-%token <int> CINT
-%token <float> CREAL
+%token <Numeral.t> CINT
+%token <Decimal.t> CREAL
 %token FRACTIONAL
 %token BOOL INT REAL
 %token TRUE FALSE
@@ -251,8 +251,10 @@ constant:
     | ci = complex_indentifier { A.Ident (mk_pos $startpos, ci) }
     | i = CINT { A.CInt (mk_pos $startpos, i) }
     | r = CREAL { A.CFloat (mk_pos $startpos, r) }
-    | FRACTIONAL c1 = CINT DIV c2 = CINT { let f1 = float_of_int (c1) in
-                                           let f2 = float_of_int (c2) in
-                                                A.CFloat (mk_pos $startpos, (f1 /. f2)) }
+    (*
+        | FRACTIONAL c1 = CINT DIV c2 = CINT { let f1 = float_of_int (c1) in
+                                            let f2 = float_of_int (c2) in
+                                                    A.CFloat (mk_pos $startpos, (f1 /. f2)) }
+    *) 
     | i1 = CINT DPERIOD i2 = CINT { A.CRange (mk_pos $startpos, i1, i2) }
     ;

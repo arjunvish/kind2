@@ -101,9 +101,9 @@ rule token = parse
   | '*'                { P.MUL }
   | '/'                { P.DIV }
   | "mod"              { P.MOD }
-  | fractional         { P.FRACTIONAL }
-  | constInt as int    { P.CINT (int_of_string (int)) }
-  | constReal as real  { P.CREAL (float_of_string (real)) }
+  (* | fractional         { P.FRACTIONAL } *)
+  | constInt as int    { P.CINT (Numeral.of_string (int)) }
+  | constReal as real  { P.CREAL (Decimal.of_string (real)) }
   | identifier as id   { P.ID id }
 
   (* Whitespace and New Line (both ignored) *)
