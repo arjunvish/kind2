@@ -31,7 +31,7 @@ type _ t =
 | Lustre : (LustreNode.t S.t * LustreGlobals.t) -> LustreNode.t t
 | Native : TransSys.t S.t -> TransSys.t t
 | Horn : unit S.t -> unit t
-| NuXmv : NuxmvAst.t S.t -> NuxmvAst.t t
+| NuXmv : (NuxmvAst.t * NuxmvChecker.env) S.t -> NuxmvAst.t t
 | Vmt : VmtAst.t S.t -> VmtAst.t t
 
 let read_input_vmt input_file = Vmt (VmtInput.of_file input_file)
@@ -196,8 +196,35 @@ let next_analysis_of_strategy (type s)
       |> Strategy.next_analysis results subs_of_scope
   )
          
-  | Horn subsystem -> (function _ -> assert false)
-  | NuXmv subsystem -> raise (UnsupportedFileFormat "NuXmv 3")
+  | Horn subsystem -> (function _ -> assert false)  
+  | NuXmv subsystem -> (
+    fun results ->
+      let subs_of_scope scope =
+        let { S.subsystems } = S.find_subsystem subsystem scope in
+        subsystems
+        |> List.map (
+          fun ({ S.scope } as sub) ->
+            scope, S.strategy_info_of sub
+        )
+      in
+      if Analysis.results_length results > 0 
+      then
+        S.all_subsystems subsystem
+        |> List.map (
+          fun ({ S.scope } as sub) ->
+            scope, S.strategy_info_of sub
+        )
+        |> Strategy.next_analysis results subs_of_scope
+      else 
+        let scope = ["Main"] in
+        let info = {
+          Analysis.top= scope;
+          Analysis.uid= 1;
+          Analysis.abstraction_map= Scope.Map.add scope false (Scope.Map.empty);
+          Analysis.assumptions= Scope.Map.empty;
+        } in
+        Some (Analysis.First (info))
+  )
   | Vmt subsystem -> (
     fun results ->
       let subs_of_scope scope =
