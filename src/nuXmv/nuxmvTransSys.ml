@@ -33,8 +33,8 @@ let find_opt (func : ('a -> bool)) (lst: 'a list) : 'a option =
     try let ans = List.find func lst in Some ans
     with Not_found -> None
 
-let generate_term ref_list svi_map svi_next_map next_expr expr_type = 
-    let rec eval_expr next expr = 
+let generate_term ref_list svi_map svi_next_map env next_expr expr_type = 
+    let rec eval_expr next enum in_set expr = 
         match expr with
         | Ast.True _ -> Term.mk_true ()
         | Ast.False _ -> Term.mk_false ()
@@ -44,56 +44,69 @@ let generate_term ref_list svi_map svi_next_map next_expr expr_type =
         | Ast.Ident (_, Ast.CIdent (_, i)) -> (
             let id_res = find_opt (fun x -> match x with (id,t) when i = id -> true| _ -> false) ref_list in 
             match id_res with
-            | Some (id, t) -> eval_expr next t  
+            | Some (id, t) -> eval_expr next enum in_set t  
             | None -> (
-                if next 
-                then
-                    Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_next_map |> List.hd)
-                else
-                    Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
+                match enum, in_set, next with
+                | (true, false, _) -> Term.mk_true () (* TODO: Determine how to make a lustreNode contract here for the single value  *)
+                | (true, true, _) -> Term.mk_true () (* TODO: Find way to return jsut the string of the enum value back for the set contract *)
+                | (false, _, true) -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_next_map |> List.hd)
+                | (false, _, false) -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
+                | _ -> assert false
             )
         )
         | Ast.CRange (_, i1, i2) -> assert false
-        | Ast.Not (_, e) -> Term.mk_not (eval_expr next e)
-        | Ast.And (_, e1, e2) -> Term.mk_and ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Or (_, e1, e2) -> Term.mk_or ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Xor (_, e1, e2) -> Term.mk_xor ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Xnor (_, e1, e2) -> Term.mk_not (Term.mk_xor ((eval_expr next e1) :: [(eval_expr next e2)]))
-        | Ast.Impl (_, e1, e2) -> Term.mk_implies ((eval_expr next e1) :: [(eval_expr next e2)])
+        | Ast.Not (_, e) -> Term.mk_not (eval_expr next enum in_set e)
+        | Ast.And (_, e1, e2) -> Term.mk_and ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Or (_, e1, e2) -> Term.mk_or ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Xor (_, e1, e2) -> Term.mk_xor ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Xnor (_, e1, e2) -> Term.mk_not (Term.mk_xor ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)]))
+        | Ast.Impl (_, e1, e2) -> Term.mk_implies ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
         | Ast.Equiv (_, e1, e2) -> assert false
-        | Ast.Eq (_, e1, e2) -> Term.mk_eq ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.NotEq (_, e1, e2) -> Term.mk_not (Term.mk_eq ((eval_expr next e1) :: [(eval_expr next e2)]))
-        | Ast.Lt (_, e1, e2) -> Term.mk_lt ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Lte (_, e1, e2) -> Term.mk_leq ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Gt (_, e1, e2) -> Term.mk_gt ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Gte (_, e1, e2) -> Term.mk_geq ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Plus (_, e1, e2) -> Term.mk_plus ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Uminus (_, e) -> Term.mk_minus ((Term.mk_num_of_int 0) :: [(eval_expr next e)])
-        | Ast.Minus (_, e1, e2) -> Term.mk_minus ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Multiply (_, e1, e2) -> Term.mk_times ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Divide (_, e1, e2) -> Term.mk_div ((eval_expr next e1) :: [(eval_expr next e2)])
-        | Ast.Mod (_, e1, e2) -> Term.mk_mod (eval_expr next e1) (eval_expr next e2)
+        | Ast.Eq (_, e1, e2) -> Term.mk_eq ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.NotEq (_, e1, e2) -> Term.mk_not (Term.mk_eq ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)]))
+        | Ast.Lt (_, e1, e2) -> Term.mk_lt ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Lte (_, e1, e2) -> Term.mk_leq ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Gt (_, e1, e2) -> Term.mk_gt ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Gte (_, e1, e2) -> Term.mk_geq ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Plus (_, e1, e2) -> Term.mk_plus ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Uminus (_, e) -> Term.mk_minus ((Term.mk_num_of_int 0) :: [(eval_expr next enum in_set e)])
+        | Ast.Minus (_, e1, e2) -> Term.mk_minus ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Multiply (_, e1, e2) -> Term.mk_times ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Divide (_, e1, e2) -> Term.mk_div ((eval_expr next enum in_set e1) :: [(eval_expr next enum in_set e2)])
+        | Ast.Mod (_, e1, e2) -> Term.mk_mod (eval_expr next enum in_set e1) (eval_expr next enum in_set e2)
         | Ast.CaseExp (_, e_list) -> (
             let rec create_ite_terms e_list = 
                 match e_list with
                 | [] -> assert false
-                | f :: s :: [] -> Term.mk_ite (eval_expr next (fst f)) (eval_expr next (snd f)) (eval_expr next (fst s))
-                | hd :: tail -> Term.mk_ite (eval_expr next (fst hd)) (eval_expr next (snd hd)) (create_ite_terms tail)
+                | f :: s :: [] -> Term.mk_ite (eval_expr next enum in_set (fst f)) (eval_expr next enum in_set (snd f)) (eval_expr next enum in_set (fst s))
+                | hd :: tail -> Term.mk_ite (eval_expr next enum in_set (fst hd)) (eval_expr next enum in_set (snd hd)) (create_ite_terms tail)
             in
             create_ite_terms e_list
         )
-        | Ast.IfThenElseExp (_, e1, e2, e3) -> Term.mk_ite (eval_expr next e1) (eval_expr next e2) (eval_expr next e3)
-        | Ast.NextExp (_, e) -> eval_expr true e
+        | Ast.IfThenElseExp (_, e1, e2, e3) -> Term.mk_ite (eval_expr next enum in_set e1) (eval_expr next enum in_set e2) (eval_expr next enum in_set e3)
+        | Ast.NextExp (_, e) -> eval_expr true enum e
         (* TODO: Determine what to do with incl operator (only generated in trans sys creation) *)
-        (* | Ast.InclExp (_, e1, e2) -> (
-            let term_e1 = eval_expr next e1 in
-        ) *)
+        | Ast.InclExp (_, e1, e2) -> (
+            let term_e1 = eval_expr next enum in_set e1 in
+            if Type.is_enum (Term.type_of_term term_e1)
+            then eval_expr next true e2
+            else (
+                let term_e2 = eval_expr next enum in_set e2 in
+                Term.mk_eq [term_e1; term_e2]
+            )
+        )
+        (* TODO: Determine how to do the node creation with the contract check for being one of all possible expressions *)
+        | Ast.SetExp (_, el) -> (
+            let el_map = List.map (fun x -> eval_expr next enum in_set true x) el in
+            (* Sets are only used for enums therefore we are going to take all contracts made from each individual one and create a sum contract *)
+            Term.mk_true ()
+        )
         | _ -> assert false
     in
     match expr_type with
-    | Ast.InvarExpr (_, nuxmv_expr) -> eval_expr next_expr nuxmv_expr
-    | Ast.NextExpr (_, nuxmv_expr) -> eval_expr next_expr nuxmv_expr
-    | Ast.SimpleExpr (_, nuxmv_expr) -> eval_expr next_expr nuxmv_expr
+    | Ast.InvarExpr (_, nuxmv_expr) -> eval_expr next_expr false nuxmv_expr
+    | Ast.NextExpr (_, nuxmv_expr) -> eval_expr next_expr false nuxmv_expr
+    | Ast.SimpleExpr (_, nuxmv_expr) -> eval_expr next_expr false nuxmv_expr
     | Ast.ArrayExpr (_, nuxmv_expr_list) -> assert false
     | Ast.LtlExpr (_, nuxmv_expr) -> assert false
 
@@ -167,7 +180,7 @@ let generate_define_ref_list _module =
     in
     create_define_process_env expr_list
 
-let generate_all_terms new_mod_expr_list ref_list svi_map svni_map init_flag= 
+let generate_all_terms new_mod_expr_list ref_list svi_map svni_map env init_flag= 
         let init_terms = 
             let filtered = (
                 filter_map
@@ -175,7 +188,7 @@ let generate_all_terms new_mod_expr_list ref_list svi_map svni_map init_flag=
                         match x with 
                         | Ast.InitConst (_, expr_type) -> (
                             let term = 
-                                generate_term ref_list svi_map svni_map false expr_type 
+                                generate_term ref_list svi_map svni_map env false expr_type 
                             in
                             Some term
                         )
@@ -202,7 +215,7 @@ let generate_all_terms new_mod_expr_list ref_list svi_map svni_map init_flag=
                         match x with 
                         | Ast.TransConst (_, expr_type) -> (
                             let term = 
-                                generate_term ref_list svi_map svni_map true expr_type 
+                                generate_term ref_list svi_map svni_map env true expr_type 
                             in
                             Some term
                         )
@@ -229,7 +242,7 @@ let generate_all_terms new_mod_expr_list ref_list svi_map svni_map init_flag=
                     match x with 
                     | Ast.InvarConst (pos, expr_type) -> (
                         let prop_term = 
-                            generate_term ref_list svi_map svni_map true expr_type 
+                            generate_term ref_list svi_map svni_map env true expr_type 
                         in
                         let lib_pos = pos_of_file_row_col (pos.Position.fname, pos.Position.line, pos.Position.col) in
                         let prop_source = P.PropAnnot (lib_pos) in
@@ -240,7 +253,7 @@ let generate_all_terms new_mod_expr_list ref_list svi_map svni_map init_flag=
                             P.prop_term; 
                             P.prop_status;  } 
                         in
-                        prop_num <= prop_num + 1; Some (return_prop)
+                        prop_num <= prop_num + 1 |> ignore ; Some (return_prop)
                     )
                     | _ -> None
                 ) 
@@ -255,10 +268,11 @@ let trans_sys_of_nuxmv
     subsystem analysis_param
     =
 
-    let custom_module_list = 
+    let custom_module_list, env = 
         SubSystem.all_subsystems subsystem
         |> List.map (function { SubSystem.source } -> source) 
-        |> List.hd 
+        |> List.hd
+        |> (fun x -> fst x, snd x)
     in
 
     let _module = 
@@ -336,6 +350,7 @@ let trans_sys_of_nuxmv
             ref_list
             sv_instance_map
             sv_next_instance_map
+            env
             init_flag
     in
 
