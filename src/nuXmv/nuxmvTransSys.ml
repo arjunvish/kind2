@@ -51,7 +51,6 @@ let generate_term ref_list svi_map svi_next_map env next_expr expr_type =
                 | (true, true, _) -> Term.mk_true () (* TODO: Find way to return jsut the string of the enum value back for the set contract *)
                 | (false, _, true) -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_next_map |> List.hd)
                 | (false, _, false) -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
-                | _ -> assert false
             )
         )
         | Ast.CRange (_, i1, i2) -> assert false
@@ -84,12 +83,12 @@ let generate_term ref_list svi_map svi_next_map env next_expr expr_type =
             create_ite_terms e_list
         )
         | Ast.IfThenElseExp (_, e1, e2, e3) -> Term.mk_ite (eval_expr next enum in_set e1) (eval_expr next enum in_set e2) (eval_expr next enum in_set e3)
-        | Ast.NextExp (_, e) -> eval_expr true enum e
+        | Ast.NextExp (_, e) -> eval_expr true enum in_set e
         (* TODO: Determine what to do with incl operator (only generated in trans sys creation) *)
         | Ast.InclExp (_, e1, e2) -> (
             let term_e1 = eval_expr next enum in_set e1 in
             if Type.is_enum (Term.type_of_term term_e1)
-            then eval_expr next true e2
+            then eval_expr next true in_set e2
             else (
                 let term_e2 = eval_expr next enum in_set e2 in
                 Term.mk_eq [term_e1; term_e2]
@@ -97,16 +96,16 @@ let generate_term ref_list svi_map svi_next_map env next_expr expr_type =
         )
         (* TODO: Determine how to do the node creation with the contract check for being one of all possible expressions *)
         | Ast.SetExp (_, el) -> (
-            let el_map = List.map (fun x -> eval_expr next enum in_set true x) el in
+            let el_map = List.map (fun x -> eval_expr next enum true x) el in
             (* Sets are only used for enums therefore we are going to take all contracts made from each individual one and create a sum contract *)
             Term.mk_true ()
         )
         | _ -> assert false
     in
     match expr_type with
-    | Ast.InvarExpr (_, nuxmv_expr) -> eval_expr next_expr false nuxmv_expr
-    | Ast.NextExpr (_, nuxmv_expr) -> eval_expr next_expr false nuxmv_expr
-    | Ast.SimpleExpr (_, nuxmv_expr) -> eval_expr next_expr false nuxmv_expr
+    | Ast.InvarExpr (_, nuxmv_expr) -> eval_expr next_expr false false nuxmv_expr
+    | Ast.NextExpr (_, nuxmv_expr) -> eval_expr next_expr false false nuxmv_expr
+    | Ast.SimpleExpr (_, nuxmv_expr) -> eval_expr next_expr false false nuxmv_expr
     | Ast.ArrayExpr (_, nuxmv_expr_list) -> assert false
     | Ast.LtlExpr (_, nuxmv_expr) -> assert false
 
