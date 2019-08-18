@@ -26,7 +26,7 @@ exception Ltl_Use_Error
 %}
 
 
-%token MODULE VAR DEFINE ASSIGN TRANS INITSPEC INVAR LTLSPEC
+%token MODULE VAR DEFINE ASSIGN TRANS INIT INVAR LTLSPEC
 %token X G F U V Y Z H O S T
 %token <string> ID
 %token <Numeral.t> CINT
