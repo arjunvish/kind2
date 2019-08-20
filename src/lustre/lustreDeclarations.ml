@@ -226,15 +226,19 @@ let rec used_inputs_expr inputs acc =
 
   | Ident (_, i) | Last (_, i) -> ISet.add i acc
 
-  | RecordProject (_, e, _) | ToInt (_, e) | ToReal (_, e)
-  | Not (_, e) | Uminus (_, e) | Current (_, e) | When (_, e, _)
+  | RecordProject (_, e, _) | ToInt (_, e) 
+  | ToUInt8 (_, e) | ToUInt16 (_, e) | ToUInt32 (_, e) | ToUInt64 (_, e) 
+  | ToInt8 (_, e) | ToInt16 (_, e) | ToInt32 (_, e) | ToInt64 (_, e) | ToReal (_, e)
+  | Not (_, e) | Uminus (_, e) | BVNot (_, e) | Current (_, e) | When (_, e, _)
   | Forall (_, _, e) | Exists (_, _, e) ->
     used_inputs_expr inputs acc e
 
   | TupleProject (_, e1, e2) | And (_, e1, e2) | Or (_, e1, e2)
   | Xor (_, e1, e2) | Impl (_, e1, e2) | ArrayConstr (_, e1, e2) 
   | Mod (_, e1, e2) | Minus (_, e1, e2) | Plus (_, e1, e2) | Div (_, e1, e2)
-  | Times (_, e1, e2) | IntDiv (_, e1, e2) | Eq (_, e1, e2) | Neq (_, e1, e2)
+  | Times (_, e1, e2) | IntDiv (_, e1, e2) | BVAnd (_, e1, e2) | BVOr (_, e1, e2) 
+  | BVShiftL (_, e1, e2) | BVShiftR (_, e1, e2)
+  | Eq (_, e1, e2) | Neq (_, e1, e2)
   | Lte (_, e1, e2) | Lt (_, e1, e2) | Gte (_, e1, e2) | Gt (_, e1, e2)
   | ArrayConcat (_, e1, e2) ->
     used_inputs_expr inputs (used_inputs_expr inputs acc e2) e1
@@ -1304,7 +1308,11 @@ and eval_contract_item check scope (ctx, accum, count) (pos, iname, expr) =
     |> C.close_expr pos
   in
   (* Check the expression if asked to. *)
-  ( match check with
+  (* Disable temporarily this check because it is very restrictive:
+     only if the final streams depend on a current output value, it should give an error
+     (an output stream passed as an argument in a node call is not an error if only the 
+     previous value of the stream is used)
+    ( match check with
     | None -> ()
     | Some desc -> (
       match contract_check_no_output ctx pos expr with
@@ -1340,7 +1348,7 @@ and eval_contract_item check scope (ctx, accum, count) (pos, iname, expr) =
               ) svars suff
         )
     )
-  ) ;
+  ) ;*)
   (* Define expression with a state variable *)
   let (svar, _), ctx = C.mk_local_for_expr ~is_ghost:true pos ctx expr in
   (* Add state variable to accumulator, continue with possibly modified
