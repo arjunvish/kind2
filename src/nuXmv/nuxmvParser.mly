@@ -26,12 +26,12 @@ exception Ltl_Use_Error
 %}
 
 
-%token MODULE VAR DEFINE ASSIGN TRANS INIT INVAR LTLSPEC
+%token MODULE VAR DEFINE ASSIGN TRANS INITCONST INVAR LTLSPEC
 %token X G F U V Y Z H O S T
 %token <string> ID
 %token <Numeral.t> CINT
 %token <Decimal.t> CREAL
-%token FRACTIONAL
+(* %token FRACTIONAL *)
 %token BOOL INT REAL
 %token TRUE FALSE
 %token EQ NEQ LT GT LTE GTE THEN
@@ -140,7 +140,7 @@ assign_element:
 trans_constraint: TRANS e = next_expr option(SEMICOLON) { A.TransConst (mk_pos $startpos, e) } 
     ;
 
-init_constraint: INITSPEC e = simple_expr option(SEMICOLON) { A.InitConst (mk_pos $startpos, e) }
+init_constraint: INITCONST e = simple_expr option(SEMICOLON) { A.InitConst (mk_pos $startpos, e) }
 
 (* Invar Constraints *)
 invar_constraint: INVAR e = invar_expr SEMICOLON { A.InvarConst (mk_pos $startpos, e) }
