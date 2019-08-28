@@ -325,9 +325,16 @@ and eval_operation pos op term_list env =
     | ("bvult", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
     | ("bvnand", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
     | ("bvnor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
-    | ("bvxor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
-    | ("bvxnor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
-    | ("bvcomp", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+
+    | ("bvxor", _ ) -> Error (NotSupported (pos, "bvxor"))
+    | ("bvxnor", _ ) -> Error (NotSupported (pos, "bvxnor"))
+    | ("bvcomp", _ ) -> Error (NotSupported (pos, "bvcomp"))
+    (*
+        | ("bvxor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+        | ("bvxnor", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+        | ("bvcomp", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
+    *)
+    
     | ("bvsub", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
     | ("bvsdiv", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
     | ("bvsmod", Ok (_type, env')) -> check_bv_oper_returns_bv _type env'
