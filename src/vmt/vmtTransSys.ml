@@ -41,7 +41,19 @@ let rec generate_full_expr ref_list svi_map term =
         | Some (id, t) -> generate_full_expr ref_list svi_map t  
         | None -> Term.mk_var (filter_map (fun x -> if fst x = i then Some (snd x) else None) svi_map |> List.hd)
     )
-    | Ast.ExtractOperation (pos, start, finish, term) -> generate_full_expr ref_list svi_map term (* TODO: change this line to do the logic for extracting *)
+    | Ast.ExtractOperation (pos, start, finish, term) -> 
+    (
+        let term' = generate_full_expr ref_list svi_map term in
+        match Type.node_of_type (Term.type_of_term term') with
+        | Type.BV _ ->  ( 
+            let bv_from_term = Term.bitvector_of_term term' in
+            let bv' = Bitvector.bvextract (Numeral.to_int start) (Numeral.to_int finish) bv_from_term in
+            Term.mk_bv bv'
+        )
+        | _ -> assert false
+        
+    
+    )(* TODO: change this line to do the logic for extracting *)
     | Ast.Operation (pos, op, tl) -> (
         let tl' = List.map (generate_full_expr ref_list svi_map) tl in
         (* TODO: make this operation conversion exhasutive to all allowed terms in term.mli *)
@@ -71,36 +83,42 @@ let rec generate_full_expr ref_list svi_map term =
         | "abs" -> Term.mk_abs (List.hd tl')
         
         (* all bitvectors currently being handled as ints *)
-        | "bvnot" -> Term.mk_not (List.hd tl')
-        | "bvand" -> Term.mk_and tl' 
-        | "bvor" -> Term.mk_or tl'  
-        | "bvneg" -> Term.mk_minus ((Term.mk_num_of_int (-1)) :: tl')
-        | "bvadd" -> Term.mk_plus tl' 
-        | "bvmul" -> Term.mk_times tl' 
-        | "bvudiv" -> Term.mk_div tl' (* TODO: change this to Bv unsigned division *)
-        | "bvshl" -> Term.mk_plus tl' (* TODO: change this to Bv Shift left operation *)
-        | "bvlshr" -> Term.mk_plus tl' (* TODO: change this to Bv logical Shift right operation *)
-        | "bvnand" -> Term.mk_not (Term.mk_and tl')
-        | "bvnor" -> Term.mk_not (Term.mk_or tl')
-        | "bvxor" -> Term.mk_xor tl' 
-        | "bvxnor" -> Term.mk_not (Term.mk_xor tl')
-        | "bvcomp" -> Term.mk_eq tl' 
-        | "bvsub" -> Term.mk_minus tl' 
-        | "bvsdiv" -> Term.mk_div tl' (* TODO: change this to Bv signed division *)
-        | "bvsmod" -> ( (* TODO: change this to Bv signed mod *)
+        | "bvnot" -> Term.mk_bvnot (List.hd tl')
+        | "bvand" -> Term.mk_bvand tl' 
+        | "bvor" -> Term.mk_bvor tl'  
+        | "bvneg" -> ( 
             match tl' with
-            | term1 :: term2 :: [] -> Term.mk_mod term1 term2
+            | term :: [] -> Term.mk_bvneg term
+            | _ -> assert false
+        )
+        | "bvadd" -> Term.mk_bvadd tl' 
+        | "bvmul" -> Term.mk_bvmul tl' 
+        | "bvudiv" -> Term.mk_bvudiv tl'
+        | "bvshl" -> Term.mk_bvshl tl'
+        | "bvlshr" -> Term.mk_bvlshr tl'
+        | "bvnand" -> Term.mk_not (Term.mk_bvand tl')
+        | "bvnor" -> Term.mk_not (Term.mk_bvor tl')
+        (*
+            | "bvxor" -> Term.mk_or tl' 
+            | "bvxnor" -> Term.mk_bvor (Term.mk_xor tl') 
+            | "bvcomp" -> Term.mk_eq tl' 
+        *)
+        | "bvsub" -> Term.mk_bvsub tl' 
+        | "bvsdiv" -> Term.mk_bvsdiv tl'
+        | "bvsmod" -> (
+            match tl' with
+            | term1 :: term2 :: [] -> Term.mk_bvsrem (term1 :: [term2])
             | _ -> assert false
         ) 
-        | "bvashr" -> Term.mk_plus tl' (* TODO: change this to Bv arithmetic shift right *)
-        | "bvult" -> Term.mk_lt tl' (* TODO: change this to Bv unsigned lt *)
-        | "bvule" -> Term.mk_leq tl' (* TODO: change this to Bv unsigned lte *)
-        | "bvugt" -> Term.mk_gt tl' (* TODO: change this to Bv unsigned gt *)
-        | "bvuge" -> Term.mk_geq tl' (* TODO: change this to Bv unsigned gte *)
-        | "bvslt" -> Term.mk_lt tl' (* TODO: change this to Bv signed lt *)
-        | "bvsle" -> Term.mk_leq tl' (* TODO: change this to Bv signed lte *)
-        | "bvsgt" -> Term.mk_gt tl' (* TODO: change this to Bv signed gt *)
-        | "bvsge" -> Term.mk_geq tl'  (* TODO: change this to Bv signed gte *)
+        | "bvashr" -> Term.mk_bvashr tl'
+        | "bvult" -> Term.mk_bvult tl' 
+        | "bvule" -> Term.mk_bvule tl' 
+        | "bvugt" -> Term.mk_bvugt tl'
+        | "bvuge" -> Term.mk_bvuge tl' 
+        | "bvslt" -> Term.mk_bvslt tl' 
+        | "bvsle" -> Term.mk_bvsle tl'
+        | "bvsgt" -> Term.mk_bvsgt tl' 
+        | "bvsge" -> Term.mk_bvsge tl'
         | _ -> assert false
     )
     | Ast.AttributeTerm (pos, term, _) -> generate_full_expr ref_list svi_map term 
@@ -108,7 +126,20 @@ let rec generate_full_expr ref_list svi_map term =
     | Ast.False _ -> Term.mk_false ()
     | Ast.Integer (_, num) -> Term.mk_num num
     | Ast.Real (_, dec) -> Term.mk_dec dec
-    | Ast.BitVecConst (_, v, s) -> Term.mk_num v (* currently just changing bit vectors to ints *)
+    | Ast.BitVecConst (_, v, s) -> (
+        match Numeral.to_int s with 
+        | 1 -> (
+            match Numeral.to_int v with
+            | 0 -> Term.mk_false ()
+            | 1 -> Term.mk_true ()
+            | _ -> assert false
+        )
+        | 8 -> Term.mk_bv (Bitvector.num_to_bv8 v)
+        | 16 -> Term.mk_bv (Bitvector.num_to_bv16 v)
+        | 32 -> Term.mk_bv (Bitvector.num_to_bv32 v)
+        | 64 -> Term.mk_bv (Bitvector.num_to_bv64 v)
+        | _ -> assert false
+    )
     | Ast.Let (pos, vbl, term) -> (
         let create_var_term_bind vb = (
             match vb with
@@ -206,13 +237,13 @@ let determine_var scope next_vars sort_map expr: StateVar.t option =
                 | Ast.BoolType _ -> Type.mk_bool ()
                 | Ast.IntType _ -> Type.mk_int ()
                 | Ast.RealType _ -> Type.mk_real ()
-                | Ast.BitVecType _ -> Type.mk_int ()
+                | Ast.BitVecType (_, num) -> Type.mk_bv (Numeral.to_int num)
                 | Ast.AmbiguousType (_, str) -> (
                     match filter_map (fun x -> if (fst x) = str then Some (snd x) else None) sort_map |> List.hd with
                     | Ast.BoolType _ -> Type.mk_bool ()
                     | Ast.IntType _-> Type.mk_int ()
                     | Ast.RealType _-> Type.mk_real ()
-                    | Ast.BitVecType _ -> Type.mk_int ()
+                    | Ast.BitVecType (_, num) -> Type.mk_bv (Numeral.to_int num)
                     | _ -> assert false
                 ) 
                 | _ -> assert false                
