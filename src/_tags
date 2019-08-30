@@ -18,9 +18,9 @@ true: -traverse, annot, bin_annot, color(always)
 <doc>: include
 
 # Use Unix, Str, ZMQ and Thread modules  
-<**/*.native>: use_nums,use_unix,use_str,use_ZMQ,thread
-<**/*.byte>: use_nums,use_unix,use_str,use_ZMQ,thread
-<**/*.top>: debug,use_nums,use_unix,use_str,thread
+<**/*.native>: package(num),package(unix),package(str),use_ZMQ,thread,package(integers)
+<**/*.byte>: package(num),package(unix),package(str),use_ZMQ,thread,package(integers)
+<**/*.top>: debug,package(num),package(unix),package(str),thread,package(integers)
 
 # Source files that use the Thread and ZMQ modules
 <messaging.ml>: thread,use_ZMQ
@@ -32,3 +32,5 @@ true: use_menhir, explain
 
 # Use custom intro page if building documentation
 <kind2.docdir/index.html>: with_intro(doc/doc_intro.txt)
+
+<terms/bitvector.ml>: package(stdint)

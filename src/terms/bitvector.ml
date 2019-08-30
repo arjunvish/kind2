@@ -4,6 +4,16 @@ open Lib
 (* Constant bitvector *)
 type t = bool list
 
+type t2 = 
+  | MUint8 of Stdint.Uint8.t
+  | MUint16 of Stdint.Uint16.t
+  | MUint32 of Stdint.Uint32.t
+  | MUint64 of Stdint.Uint64.t
+  | MInt8 of Stdint.Int8.t
+  | MInt16 of Stdint.Int16.t
+  | MInt32 of Stdint.Int32.t
+  | MInt64 of Stdint.Int64.t
+
 exception NonBinaryDigit
 exception ComparingUnequalBVs
 exception NonStandardBVSize
