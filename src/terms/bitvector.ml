@@ -373,14 +373,165 @@ let to_uint64 (x : t) : t =
   | MUint64 i -> MUint64 i
   | _ -> raise NonStandardBVSize
 
-to_int8
+(* intN -> int8 *)
+let to_int8 (x : t) : t =
+  match x with
+  | MInt8 i -> MInt8 i
+  | MInt16 i -> MInt8 (Stdint.Int8.of_uint16 i)
+  | MInt32 i -> MInt8 (Stdint.Int8.of_uint32 i)
+  | MInt64 i -> MInt8 (Stdint.Int8.of_uint64 i)
+  | _ -> raise NonStandardBVSize
 
-to_int16
+(* intN -> int16 *)
+let to_int16 (x : t) : t =
+  match x with
+  | MInt8 i -> MInt16 (Stdint.Int16.of_uint8 i)
+  | MInt16 i -> MInt16 i
+  | MInt32 i -> MInt16 (Stdint.Int16.of_uint32 i)
+  | MInt64 i -> MInt16 (Stdint.Int16.of_uint64 i)
+  | _ -> raise NonStandardBVSize
 
-to_int32
+(* intN -> int32 *)
+let to_int32 (x : t) : t =
+  match x with
+  | MInt8 i -> MInt32 (Stdint.Int32.of_uint8 i)
+  | MInt16 i -> MInt32 (Stdint.Int32.of_uint16 i)
+  | MInt32 i -> MInt32 i
+  | MInt64 i -> MInt32 (Stdint.Int32.of_uint64 i)
+  | _ -> raise NonStandardBVSize
 
-to_int64
+(* intN -> int64 *)
+let to_int64 (x : t) : t =
+  match x with
+  | MInt8 i -> MInt64 (Stdint.Int64.of_uint8 i)
+  | MInt16 i -> MInt64 (Stdint.Int64.of_uint16 i)
+  | MInt32 i -> MInt64 (Stdint.Int64.of_uint32 i)
+  | MInt64 i -> MInt64 i
+  | _ -> raise NonStandardBVSize
 
+
+(* ********************************************************************** *)
+(* Shift operators                                                   *)
+(* ********************************************************************** *)
+
+(* Shift left *)
+let bvshl (x : t) (y : t) : t =
+  match x, y with
+  | MUint8 i, MUint8 j ->
+      if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
+        Stdint.Uint8.zero
+      else
+        Stdint.Uint8.shift_left i (Stdint.Uint8.to_int j)
+
+  | MUint16 i, MUint16 j ->
+      if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
+        Stdint.Uint16.zero
+      else
+        Stdint.Uint16.shift_left i (Stdint.Uint16.to_int j)
+
+  | MUint32 i, MUint32 j ->
+      if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
+        Stdint.Uint32.zero
+      else
+        Stdint.Uint32.shift_left i (Stdint.Uint32.to_int j)
+
+  | MUint64 i, MUint64 j ->
+      if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
+        Stdint.Uint64.zero
+      else
+        Stdint.Uint64.shift_left i (Stdint.Uint64.to_int j)
+
+  | MInt8 i, MUint8 j ->
+      if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
+        Stdint.Int8.zero
+      else
+        Stdint.Int8.shift_left i (Stdint.Uint8.to_int j)
+
+  | MInt16 i, MUint16 j ->
+      if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
+        Stdint.Int16.zero
+      else
+        Stdint.Int16.shift_left i (Stdint.Uint16.to_int j)
+
+  | MInt32 i, MUint32 j ->
+      if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
+        Stdint.Int32.zero
+      else
+        Stdint.Int32.shift_left i (Stdint.Uint32.to_int j)
+
+  | MInt64 i, MUint64 j ->
+      if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
+        Stdint.Int64.zero
+      else
+        Stdint.Int64.shift_left i (Stdint.Uint64.to_int j)
+
+  | _, _ -> raise UnequalBVs
+
+
+(* Shift right *)
+let bvshl (x : t) (y : t) : t =
+  match x, y with
+  | MUint8 i, MUint8 j ->
+      if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
+        Stdint.Uint8.zero
+      else
+        Stdint.Uint8.shift_right_logical i (Stdint.Uint8.to_int j)
+
+  | MUint16 i, MUint16 j ->
+      if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
+        Stdint.Uint16.zero
+      else
+        Stdint.Uint16.shift_right_logical i (Stdint.Uint16.to_int j)
+
+  | MUint32 i, MUint32 j ->
+      if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
+        Stdint.Uint32.zero
+      else
+        Stdint.Uint32.shift_right_logical i (Stdint.Uint32.to_int j)
+
+  | MUint64 i, MUint64 j ->
+      if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
+        Stdint.Uint64.zero
+      else
+        Stdint.Uint64.shift_right_logical i (Stdint.Uint64.to_int j)
+
+  | MInt8 i, MUint8 j ->
+      if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
+        if((compare i (Stdint.Int8.zero)) < 0) then
+          Stdint.Int8.of_int (-1)
+        else
+          Stdint.Int8.zero
+      else
+        Stdint.Int8.shift_right i (Stdint.Uint8.to_int j)
+
+  | MInt16 i, MUint16 j ->
+      if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
+        if((compare i (Stdint.Int8.zero)) < 0) then
+          Stdint.Int8.of_int (-1)
+        else
+          Stdint.Int8.zero
+      else
+        Stdint.Int8.shift_right i (Stdint.Uint8.to_int j)
+
+  | MInt32 i, MUint32 j ->
+      if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
+        if((compare i (Stdint.Int32.zero)) < 0) then
+          Stdint.Int32.of_int (-1)
+        else
+          Stdint.Int32.zero
+      else
+        Stdint.Int32.shift_right i (Stdint.Uint32.to_int j)
+
+  | MInt64 i, MUint64 j ->
+      if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
+        if((compare i (Stdint.Int64.zero)) < 0) then
+          Stdint.Int64.of_int (-1)
+        else
+          Stdint.Int64.zero
+      else
+        Stdint.Int64.shift_right i (Stdint.Uint64.to_int j)
+  
+  | _, _ -> raise UnequalBVs
 
 
 (* ********************************************************************** *)
@@ -388,161 +539,71 @@ to_int64
 (* ********************************************************************** *)
 
 (* Equality *)
-let rec equal bv1 bv2 = 
-  match bv1, bv2 with
-  | [], [] -> true
-  | h1 :: t1, h2 :: t2 -> (h1 = h2) && (equal t1 t2)
-  | _ -> raise UnequalBVs
+let equal (x : t) (y : t) : bool = 
+  match x, y with
+  | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j = 0)
+  | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j = 0)
+  | MUint32 i, MUint32 j -> (Stdint.Uint32.compare i j = 0)
+  | MUint64 i, MUint64 j -> (Stdint.Uint64.compare i j = 0)
+  | MInt8 i, MInt8 j -> (Stdint.Int8.compare i j = 0)
+  | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j = 0)
+  | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j = 0)
+  | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j = 0)
+  | _, _ -> raise UnequalBVs
 
-(* Unsigned lesser than *)
-let rec ult bv1 bv2 = 
-  match bv1, bv2 with
-  | [], [] -> false
-  | h1 :: t1, h2 :: t2 -> 
-    (match h1, h2 with
-    | true, false -> false
-    | false, true -> true 
-    | _ -> (ult t1 t2))
-  | _ -> raise UnequalBVs
+(* Less than *)
+let lt (x : t) (y : t) : bool = 
+  match x, y with
+  | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j < 0)
+  | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j < 0)
+  | MUint32 i, MUint32 j -> (Stdint.Uint32.compare i j < 0)
+  | MUint64 i, MUint64 j -> (Stdint.Uint64.compare i j < 0)
+  | MInt8 i, MInt8 j -> (Stdint.Int8.compare i j < 0)
+  | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j < 0)
+  | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j < 0)
+  | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j < 0)
+  | _, _ -> raise UnequalBVs
 
-(* Unsigned greater than *)
-let rec ugt bv1 bv2 =
-  match bv1, bv2 with
-  | [], [] -> false
-  | h1 :: t1, h2 :: t2 -> 
-    (match h1, h2 with
-    | false, true -> false
-    | true, false -> true
-    | _ -> (ugt t1 t2))
-  | _ -> raise UnequalBVs
+(* Greater than *)
+let gt (x : t) (y : t) : bool = 
+  match x, y with
+  | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j > 0)
+  | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j > 0)
+  | MUint32 i, MUint32 j -> (Stdint.Uint32.compare i j > 0)
+  | MUint64 i, MUint64 j -> (Stdint.Uint64.compare i j > 0)
+  | MInt8 i, MInt8 j -> (Stdint.Int8.compare i j > 0)
+  | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j > 0)
+  | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j > 0)
+  | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j > 0)
+  | _, _ -> raise UnequalBVs
 
-(* Unsigned lesser than or equal to *)
-let rec ulte bv1 bv2 =
-  match bv1, bv2 with
-  | [], [] -> true
-  | h1 :: t1, h2 :: t2 ->
-    (match h1, h2 with
-    | false, true -> true
-    | true, false -> false
-    | _ -> (ulte t1 t2))
-  | _ -> raise UnequalBVs
+(* Less than or equal to *)
+let lte (x : t) (y : t) : bool = 
+  match x, y with
+  | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j <= 0)
+  | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j <= 0)
+  | MUint32 i, MUint32 j -> (Stdint.Uint32.compare i j <= 0)
+  | MUint64 i, MUint64 j -> (Stdint.Uint64.compare i j <= 0)
+  | MInt8 i, MInt8 j -> (Stdint.Int8.compare i j <= 0)
+  | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j <= 0)
+  | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j <= 0)
+  | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j <= 0)
+  | _, _ -> raise UnequalBVs
 
-(* Unsigned greater than or equal to *)
-let rec ugte bv1 bv2 =
-  match bv1, bv2 with
-  | [], [] -> true
-  | h1 :: t1, h2 :: t2 -> 
-    (match h1, h2 with
-    | true, false -> true
-    | false, true -> false
-    | _ -> (ugte t1 t2))
-  | _ -> raise UnequalBVs
-
-(* Signed lesser than *)
-let lt (bv1 : t) (bv2 : t) : bool = 
-  let i1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-  let i2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    (Numeral.lt i1 i2)
-
-(* Signed greater than *)
-let gt (bv1 : t) (bv2 : t) : bool = 
-  let i1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-  let i2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    (Numeral.gt i1 i2)
-
-(* Signed lesser than or equal to *)
-let lte (bv1 : t) (bv2 : t) : bool = 
-  let i1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-  let i2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    (Numeral.leq i1 i2)
-
-(* Signed greater than or equal to *)
-let gte (bv1 : t) (bv2 : t) : bool = 
-  let i1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-  let i2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    (Numeral.geq i1 i2)
+(* Greater than or equal to *)
+let gte (x : t) (y : t) : bool = 
+  match x, y with
+  | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j >= 0)
+  | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j >= 0)
+  | MUint32 i, MUint32 j -> (Stdint.Uint32.compare i j >= 0)
+  | MUint64 i, MUint64 j -> (Stdint.Uint64.compare i j >= 0)
+  | MInt8 i, MInt8 j -> (Stdint.Int8.compare i j >= 0)
+  | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j >= 0)
+  | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j >= 0)
+  | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j >= 0)
+  | _, _ -> raise UnequalBVs
 
 
-(* ********************************************************************** *)
-(* Shift operators                                                   *)
-(* ********************************************************************** *)
-
-(* Left shift *)
-let rec shift_left (bv : t) (n : Numeral.t) : t =
-  if (Numeral.equal n Numeral.zero) then
-    bv
-  else
-    (match bv with
-    | [] -> []
-    | h :: t -> shift_left 
-                  (List.append t [false]) 
-                  (Numeral.sub n Numeral.one))
-
-let bv_lsh (bv1 : t) (bv2 : t) : t =
-  let n = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    shift_left bv1 n
-
-
-(* Right shift *)
-let rec remove_last (bv : t) : t =
-  match bv with
-  | [] -> []
-  | [_] -> []
-  | h :: t -> h :: (remove_last t)
-
-let rec shift_right (bv : t) (n : Numeral.t) : t =
-  if (Numeral.equal n Numeral.zero) then
-    bv
-  else
-    (match bv with
-    | [] -> []
-    | h :: t -> shift_right
-                  (false :: (h :: (remove_last t)))
-                  (Numeral.sub n Numeral.one))
-
-let bv_rsh (bv1 : t) (bv2 : t) : t =
-  let n = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    shift_right bv1 n
-
-
-(* Arithmetic right shift *)
-let rec ar_shift_right (bv : t) (n : Numeral.t) (sign : bool) : t =
-  if(Numeral.equal n Numeral.zero) then
-    bv
-  else
-    (match bv with
-    | [] -> []
-    | h :: t -> ar_shift_right
-                  (sign :: (h :: (remove_last t)))
-                  (Numeral.sub n Numeral.one)
-                  sign)
-
-let bv_arsh (bv1 : t) (bv2 : t) : t =
-  let n = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-  let sign = List.hd bv1 in
-    ar_shift_right bv1 n sign
-
-
-(* ********************************************************************** *)
-(* Unused - Might be Useful in the Future                                 *)
-(* ********************************************************************** *)
-
-(* Function that inputs a list of bitvectors and returns Some n
-   if all bitvectors have size n, where n = 8,16,32,64, and None otherwise 
-   Special case: it returns None for the input of an empty list of BVs*)
-let check_bv_uniform bvl = 
-  if (List.length bvl = 0) then
-    None
-  else
-    let l_lens = List.map List.length bvl in
-      let el1 = List.hd l_lens in
-        if ((el1 != 8) && (el1 != 16) && (el1 != 32) && (el1 != 64)) then
-          None
-        else
-          if List.for_all (fun (i : int) -> i = el1) l_lens then
-            Some el1
-          else
-            None
 
 
 (* ********************************************************************** *)
