@@ -1,10 +1,8 @@
 open Format
 open Lib
 
-(* Constant bitvector *)
-type t = bool list
-
-type t2 = 
+(* Bitvector type *)
+type t =  
   | MUint8 of Stdint.Uint8.t
   | MUint16 of Stdint.Uint16.t
   | MUint32 of Stdint.Uint32.t
@@ -15,7 +13,7 @@ type t2 =
   | MInt64 of Stdint.Int64.t
 
 exception NonBinaryDigit
-exception ComparingUnequalBVs
+exception UnequalBVs
 exception NonStandardBVSize
 
 (* Function that converts a single binary integer digit to Boolean *)
@@ -94,27 +92,17 @@ let rec pow2 (n : Numeral.t) : Numeral.t =
 
 (* Function that returns unsigned fixed-width int or bitvector version of a numeral *)
 let num_to_ubv (size : Numeral.t) (i : Numeral.t) : t =
-  (* x = 2^N for ubvN, where we need to 
-  do n modulo x on the input n *)
+  (* m = 2^size for ubv(size), where we need to 
+  do i modulo m on the input i *)
   let m = pow2 size in
   let n = modulo i m in
-  (* Tail-recursive function that converts n to type t,
-  which is a list of bools *)
-  let rec convert acc (l : Numeral.t) (n : Numeral.t) =
-    if (Numeral.gt n Numeral.zero) then
-      convert ((Numeral.equal (Numeral.rem n (Numeral.of_int 2)) Numeral.one) :: acc) 
-              (Numeral.add l Numeral.one) (Numeral.div n (Numeral.of_int 2))
-    else (acc, l)
-  in
-  let bv, l = convert [] Numeral.zero n in
-  (* For n-bit BV, pad upto n bits with 0s *)
-  let rec pad (bv : t) (l :Numeral.t) =
-    if (Numeral.gt l Numeral.zero) then 
-      pad (false :: bv) (Numeral.sub l Numeral.one) 
-    else 
-      bv
-  in
-  pad bv (Numeral.sub size l)
+  let str_n = string_of_numeral n in
+    match size with 
+    | Numeral.of_int 8 -> Stdint.Uint8.of_string str_n
+    | Numeral.of_int 16 -> Stdint.Uint16.of_string str_n
+    | Numeral.of_int 32 -> Stdint.Uint32.of_string str_n
+    | Numeral.of_int 64 -> Stdint.Uint64.of_string str_n
+    | _ -> raise NonStandardBVSize
 
   let num_to_ubv8 = num_to_ubv (Numeral.of_int 8)
 
@@ -123,35 +111,6 @@ let num_to_ubv (size : Numeral.t) (i : Numeral.t) : t =
   let num_to_ubv32 = num_to_ubv (Numeral.of_int 32)
 
   let num_to_ubv64 = num_to_ubv (Numeral.of_int 64)
-
-
-(* ********************************************************************** *)
-(* Unsigned BV -> Numeral                                                 *)
-(* ********************************************************************** *)
-
-(* Function that converts a Boolean to a single binary numeral *)
-let bool_to_bin (b : bool) : Numeral.t =
-  match b with 
-  | false -> Numeral.zero
-  | true -> Numeral.one
-  
-(*Function that returns the numeral corresponding to a bitvector *)
-let rec ubv_to_num (size : Numeral.t) (b : t) : Numeral.t =
-  match b with
-  | h :: t -> 
-      let prod = Numeral.mult (bool_to_bin h) 
-                              (pow2 (Numeral.sub size Numeral.one)) 
-      in
-        Numeral.add prod (ubv_to_num (Numeral.sub size Numeral.one) t)
-  | [] -> Numeral.zero
-
-let ubv8_to_num = ubv_to_num (Numeral.of_int 8)
-
-let ubv16_to_num = ubv_to_num (Numeral.of_int 16)
-
-let ubv32_to_num = ubv_to_num (Numeral.of_int 32)
-
-let ubv64_to_num = ubv_to_num (Numeral.of_int 64)
 
 
 (* ********************************************************************** *)
@@ -180,63 +139,19 @@ let signed_modulo (n : Numeral.t) (range_size : Numeral.t) : Numeral.t =
           Numeral.add neg_lim (Numeral.sub diff_mod Numeral.one)
     else n
 
-(*1's complement of binary number - 
-flip all bits *)
-let rec ones_comp (n : t) : t =
-  match n with 
-  | [] -> []
-  | h :: t -> match h with 
-	      | true -> false :: (ones_comp t)
-	      | false -> true :: (ones_comp t)
-
-(* Return a binary version of "size"-bit 1 *)
-let rec bin_one (size : int) : t =
-  if (size > 1) then
-    false :: (bin_one (size - 1))
-  else [true]
-
-(* Input : bit1, bit2, carryIn; Output : sum, carryOut *)
-let add_bits (x : bool) (y : bool) (carry : bool) : (bool * bool) = 
-  match x, y, carry with 
-  | false, false, false -> (false, false) 
-  | false, false, true  -> (true, false)
-  | false, true, false  -> (true, false) 
-  | false, true, true   -> (false, true)
-  | true, false, false  -> (true, false)
-  | true, false, true   -> (false, true)
-  | true, true, false   -> (false, true)
-  | true, true, true    -> (true, true)
-
-(* Binary additon - LSB is the left-most bit 
-because binary numbers have been reversed. 
-Ignore bit carried out of MSB (2's complement). *)
-let rec bitwise_add (l1 : t) (l2 : t) (carry : bool) : t =
-match l1, l2 with
-  | [], [] -> []
-  | h1 :: t1, h2 :: t2 -> 
-    (match (add_bits h1 h2 carry) with
-    | (sum_bit, carry_bit) -> sum_bit :: (bitwise_add t1 t2 carry_bit)) 
-  | _ -> raise ComparingUnequalBVs
-
-(* Input an n-size number and add an 
-n-size 1 to it, ignoring if the last bit 
-carry's out (for 2's complement)*)
-let plus_one (n : t) (one : t) : t =
-  let r_n = List.rev n in
-  let r_one = List.rev one in 
-  List.rev (bitwise_add r_n r_one false)
-
+(* Function that returns signed fixed-width int or bitvector version of a numeral *)
 let num_to_bv (size : Numeral.t) (i : Numeral.t) : t =
-  (* x =2^n for ubvN, where we need to do 
-     n modulo x on the input n *)
+  (* m =2^size for ubv(size), where we need to do 
+     i modulo m on the input i *)
   let m = pow2 size in
   let n = signed_modulo i m in
-    if (Numeral.geq n Numeral.zero) then
-      (num_to_ubv size n)
-    else 
-      let pos = (num_to_ubv size (Numeral.neg n)) in
-      let onescomp = ones_comp pos in
-      plus_one onescomp (bin_one (Numeral.to_int size))
+  let str_n = string_of_numeral n in
+    match size with 
+    | Numeral.of_int 8 -> Stdint.Int8.of_string str_n
+    | Numeral.of_int 16 -> Stdint.Int16.of_string str_n
+    | Numeral.of_int 32 -> Stdint.Int32.of_string str_n
+    | Numeral.of_int 64 -> Stdint.Int64.of_string str_n
+    | _ -> raise NonStandardBVSize
 
 let num_to_bv8 = num_to_bv (Numeral.of_int 8) 
 
@@ -248,183 +163,47 @@ let num_to_bv64 = num_to_bv (Numeral.of_int 64)
 
 
 (* ********************************************************************** *)
-(* Signed BV -> Num                                                       *)
+(* BV -> Numeral                                                 *)
 (* ********************************************************************** *)
-
-let bv_to_num (size : Numeral.t) (b : t) : Numeral.t =
-  if((List.nth b 0) = false) then
-    ubv_to_num size b
-  else
-    (Numeral.neg (ubv_to_num size
-                             (plus_one (ones_comp b) 
-                                       (bin_one (Numeral.to_int size)))))
   
-let bv8_to_num = bv_to_num (Numeral.of_int 8)
-
-let bv16_to_num = bv_to_num (Numeral.of_int 16)
-
-let bv32_to_num = bv_to_num (Numeral.of_int 32)
-
-let bv64_to_num = bv_to_num (Numeral.of_int 64)
-
-
-(* Using functions involving numerals rather than ints 
-(* ********************************************************************** *)
-(* Int -> Unsigned BV                                                     *)
-(* ********************************************************************** *)
-
-(* The mod operator in OCaml implements remainder 
-with respect to integer division. Since integer division
-in OCaml rounds toward 0, we design modulo which considers 
-division that rounds toward negative infinity. 
-For example, -1 mod 8 is -1 (with quotient 0) in OCaml, 
-we want it to be 7 (with quotient -1).
-While considering a mod b, the OCaml mod operator will do what 
-we want when a and b are positive. The following function will 
-additionally do what we want when a is negative; it wont do what 
-we want when b is negative, but that's okay since 
-we don't consider cases of 
-modulo-n arithmetic where n is negative. *)
-let modulo_int x y =
-  let result = x mod y in
-  if result >= 0 then result
-  else result + y
-
-(* Function that returns unsigned fixed-width int or bitvector version of an int *)
-let int_to_ubv (size : int) (i : int) : t =
-  (* 
-  For converting n to UBV8, n modulo 256.
-  In general, for converting n to UBVm, 
-  n modulo 2^m, or n modulo r where
-  r = 1 << m since (<< m) <=> ( * 2^m).
-  *)
-  let m = 1 lsl size in
-  let n = modulo_int i m in
-  (* Tail-recursive function that converts n to type t,
-  which is a list of bools *)
-  let rec convert acc l n =
-    if n>0 then
-      convert (((n mod 2) = 1) :: acc) (l+1) (n / 2)
-    else (acc, l)
-  in
-  let bv, l = convert [] 0 n in
-  (* For n-bit BV, pad upto n bits with 0s *)
-  let rec pad bv l =
-    if l>0 then pad (false :: bv) (l-1) else bv
-  in
-  pad bv (size - l)
-
-let int_to_ubv8 = int_to_ubv 8 
-
-let int_to_ubv16 = int_to_ubv 16
-
-let int_to_ubv32 = int_to_ubv 32
-
-let int_to_ubv64 = int_to_ubv 64
-
-
-let ubvM_to_ubvm (m2 : int) (m : int) (n : int) : t =
-  if (m2 <= m) then
-    (int_to_ubv m n)
-  else
-    let range = 1 lsl m2 in
-    let i = modulo n range in
-    int_to_ubv m i
-
-(* Using functions involving numerals rather than ints *)
-(* ********************************************************************** *)
-(* Unsigned BV -> Int                                                     *)
-(* ********************************************************************** *)
-
-(* Function that converts a Boolean to a single binary integer digit *)
-let bool_to_bin_int (b : bool) : int =
-  match b with 
-  | false -> 0
-  | true -> 1
-
-(* Function that calculates the nth power of two *)
-let rec pow2_int (n : int) : int =
-  match n with
-  | 0 -> 1
-  | n' -> 2 * pow2_int (n' - 1)
-
-(* Function that returns the integer corresponding to a bitvector *)
-let rec ubv_to_int (size : int)  (b: t) : int =
+(*Function that returns the numeral corresponding to a bitvector *)
+let bv_to_num (b : t) : Numeral.t =
   match b with
-  | h :: t ->  (bool_to_bin_int h) * (pow2_int (size - 1)) + ubv_to_int (size - 1) t
-  | [] -> 0
-
-let ubv8_to_int = ubv_to_int 8
-
-let ubv16_to_int = ubv_to_int 16
-
-let ubv32_to_int = ubv_to_int 32
-
-let ubv64_to_int = ubv_to_int 64
+  | MUint8 i -> Numeral.of_string (Stdint.Uint8.to_string i)
+  | MUint16 i -> Numeral.of_string (Stdint.Uint16.to_string i)
+  | MUint32 i -> Numeral.of_string (Stdint.Uint32.to_string i)
+  | MUint64 i -> Numeral.of_string (Stdint.Uint64.to_string i)
+  | MInt8 i -> Numeral.of_string (Stdint.Int8.to_string i)
+  | MInt16 i -> Numeral.of_string (Stdint.Int16.to_string i)
+  | MInt32 i -> Numeral.of_string (Stdint.Int32.to_string i)
+  | MInt64 i -> Numeral.of_string (Stdint.Int64.to_string i)
 
 
-(* Using functions involving numerals rather than ints *)
 (* ********************************************************************** *)
-(* Int -> Signed BV                                                       *)
+(* Constants                                                              *)
 (* ********************************************************************** *)
 
-(* Input any number n, input the size of the 
-BV range, output the number fit into the range.
-For example, for 4-bit signed integers, input 
--9, 16 (2^4), and output 7 *)
-let signed_modulo_int (n : int) (range_size : int) : int = 
-  let neg_lim = -(range_size/2) in
-  let pos_lim = (range_size/2) - 1 in
-    if (n < neg_lim) then
-      let diff = (neg_lim - n) in 
-      let diff_mod = (diff mod range_size) in
-        if (diff_mod = 0) then neg_lim else (pos_lim - (diff_mod - 1))
-    else if (n > pos_lim) then
-      let diff = (n - pos_lim) in
-	    let diff_mod = (diff mod range_size) in
-	      if (diff_mod = 0) then pos_lim else (neg_lim + (diff_mod - 1))
-    else n
+(* The integer zero *)
+let zero = 
+  | MUint8 (Stdint.Uint8.zero)
+  | MUint16 (Stdint.Uint16.zero)
+  | MUint32 (Stdint.Uint32.zero)
+  | MUint64 (Stdint.Uint64.zero)
+  | MInt8 (Stdint.Int8.zero)
+  | MInt16 (Stdint.Int16.zero)
+  | MInt32 (Stdint.Int32.zero)
+  | MInt64 (Stdint.Int64.zero)
 
-let int_to_bv (size : int) (i : int) : t =
-  let m = 1 lsl size in 
-  let n = signed_modulo_int i m in
-  if (n >= 0) then 
-    (int_to_ubv size i)
-  else 
-    let pos = (int_to_ubv size (-(n))) in
-    let onescomp = ones_comp pos in 
-    plus_one onescomp (bin_one size)
-
-let int_to_bv8 = int_to_bv 8 
-
-let int_to_bv16 = int_to_bv 16
-
-let int_to_bv32 = int_to_bv 32
-
-let int_to_bv64 = int_to_bv 64
-
-
-(* Using functions involving numerals rather than ints *)
-(* ********************************************************************** *)
-(* Signed BV -> Int                                                       *)
-(* ********************************************************************** *)
-
-let bv_to_int (size : int) (b : t) :  int =
-  if ((List.nth b 0) = false) then
-    ubv_to_int size b
-  else 
-    (-(ubv_to_int size 
-                  (plus_one (ones_comp b) 
-                            (bin_one size))))
-
-let bv8_to_int = bv_to_int 8
-
-let bv16_to_int = bv_to_int 16
-
-let bv32_to_int = bv_to_int 32
-
-let bv64_to_int = bv_to_int 64
-*)
+(* The integer one *)
+let one = 
+  | MUint8 (Stdint.Uint8.one)
+  | MUint16 (Stdint.Uint16.one)
+  | MUint32 (Stdint.Uint32.one)
+  | MUint64 (Stdint.Uint64.one)
+  | MInt8 (Stdint.Int8.one)
+  | MInt16 (Stdint.Int16.one)
+  | MInt32 (Stdint.Int32.one)
+  | MInt64 (Stdint.Int64.one)
 
 
 (* ********************************************************************** *)
@@ -432,175 +211,176 @@ let bv64_to_int = bv_to_int 64
 (* ********************************************************************** *)
 
 (* Addition *)
-let sbv_add (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let sum = Numeral.add num1 num2 in
-    num_to_bv (Numeral.of_int (List.length bv1)) sum
-
-let ubv_add (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = ubv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let sum = Numeral.add num1 num2 in
-    num_to_ubv (Numeral.of_int (List.length bv1)) sum
-
-
-(* Multiplication *)
-let sbv_mult (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let prod = Numeral.mult num1 num2 in
-    num_to_bv (Numeral.of_int (List.length bv1)) prod
-
-let ubv_mult (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = ubv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let prod = Numeral.mult num1 num2 in
-    num_to_ubv (Numeral.of_int (List.length bv1)) prod
-
-
-(* Division *)
-let sbv_div (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let q = 
-      (match num1, num2 with
-      | n1, n2 when ((Numeral.geq n1 Numeral.zero) && 
-                     (Numeral.geq n2 Numeral.zero))
-        -> Numeral.div n1 n2
-      | n1, n2 when ((Numeral.lt n1 Numeral.zero) &&
-                     (Numeral.geq n2 Numeral.zero))
-        -> let neg_n1 = (Numeral.neg n1) in
-           let q_aux = Numeral.div neg_n1 n2 in
-           Numeral.neg q_aux
-      | n1, n2 when ((Numeral.geq n1 Numeral.zero) &&
-                     (Numeral.lt n2 Numeral.zero))
-        -> let neg_n2 = (Numeral.neg n2) in
-           let q_aux = Numeral.div n1 neg_n2 in
-           Numeral.neg q_aux
-      | n1, n2 when ((Numeral.lt n1 Numeral.zero) &&
-                     (Numeral.lt n2 Numeral.zero))
-        -> let neg_n1 = (Numeral.neg n1) in
-           let neg_n2 = (Numeral.neg n2) in
-           Numeral.div neg_n1 neg_n2
-      | _ -> assert false) in
-    num_to_bv (Numeral.of_int (List.length bv1)) q
-
-let ubv_div (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = ubv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let q = Numeral.div num1 num2 in
-    num_to_ubv (Numeral.of_int (List.length bv1)) q
-
-
-(* Remainder *)
-let sbv_rem (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let r = Numeral.rem num1 num2 in
-    num_to_bv (Numeral.of_int (List.length bv1)) r
-
-let ubv_rem (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else 
-    let num1 = ubv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = ubv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let r = Numeral.rem num1 num2 in
-    num_to_ubv (Numeral.of_int (List.length bv1)) r
-
+let add (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.add x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.add x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.add x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.add x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.add x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.add x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.add x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.add x y)
+    | _ -> raise UnequalBVs
 
 (* Subtraction *)
-let sbv_sub (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    let num1 = bv_to_num (Numeral.of_int (List.length bv1)) bv1 in
-    let num2 = bv_to_num (Numeral.of_int (List.length bv2)) bv2 in
-    let diff = Numeral.sub num1 num2 in
-    num_to_bv (Numeral.of_int (List.length bv1)) diff
+let sub (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.sub x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.sub x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.sub x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.sub x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.sub x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.sub x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.sub x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.sub x y)
+    | _ -> raise UnequalBVs
 
+(* Multiplication *)
+let mul (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.mul x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.mul x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.mul x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.mul x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.mul x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.mul x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.mul x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.mul x y)
+    | _ -> raise UnequalBVs
+
+(* Division *)
+(* Raises Division_by_zero exception if second argument is zero *)
+let div (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.div x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.div x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.div x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.div x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.div x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.div x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.div x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.div x y)
+    | _ -> raise UnequalBVs
+
+(* Remainder *)
+(* Raises Division_by_zero exception if second argument is zero *)
+let rem (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.rem x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.rem x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.rem x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.rem x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.rem x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.rem x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.rem x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.rem x y)
+    | _ -> raise UnequalBVs
 
 (* Negation *)
-let rec create_one (size : Numeral.t) : t =
-  if (Numeral.equal size Numeral.zero) then
-    []
-  else if (Numeral.equal size Numeral.one) then
-    [true]
-  else 
-    false :: (create_one (Numeral.sub size Numeral.one))
-  
-(* Using ones_comp and bitwise_add from Numeral -> Signed BV conversion *)
-let sbv_neg (bv : t) : t =
-  let bv_ones_comp = ones_comp bv in
-  let res = bitwise_add 
-              (List.rev bv_ones_comp)
-              (List.rev (create_one (Numeral.of_int (List.length bv))))
-              false
-  in List.rev res
+let neg (x : t) : t =
+  match x with
+    | MUint8 i -> MUint8 (Stdint.Uint8.neg x)
+    | MUint16 i -> MUint16 (Stdint.Uint16.neg x)
+    | MUint32 i -> MUint32 (Stdint.Uint32.neg x)
+    | MUint64 i -> MUint64 (Stdint.Uint64.neg x)
+    | MInt8 i -> MInt8 (Stdint.Int8.neg x)
+    | MInt16 i -> MInt16 (Stdint.Int16.neg x)
+    | MInt32 i -> MInt32 (Stdint.Int32.neg x)
+    | MInt64 i -> MInt64 (Stdint.Int64.neg x)
 
 
 (* ********************************************************************** *)
 (* Logical Operations                                                     *)
 (* ********************************************************************** *)
 
-(* Conjunciton *)
-let rec bv_and_aux (bv1 : t) (bv2 : t) (acc : t) : t =
-  match bv1, bv2 with
-  | [], [] -> acc
-  | h1 :: t1, h2 :: t2 -> bv_and_aux t1 t2 (List.append acc [h1 && h2])
-  | _ -> assert false
+(* Bitwise and *)
+let logand (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.logand x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.logand x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.logand x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.logand x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.logand x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logand x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logand x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logand x y)
+    | _ -> raise UnequalBVs
 
-let bv_and (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    bv_and_aux bv1 bv2 []
+(* Bitwise or *)
+let logor (x : t) (y : t) : t =
+  match x, y with
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.logor x y)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.logor x y)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.logor x y)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.logor x y)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.logor x y)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logor x y)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logor x y)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logor x y)
+    | _ -> raise UnequalBVs
+
+(* Bitwise not *)
+let lognot (x : t) : t =
+  match x with
+    | MUint8 i -> MUint8 (Stdint.Uint8.lognot x)
+    | MUint16 i -> MUint16 (Stdint.Uint16.lognot x)
+    | MUint32 i -> MUint32 (Stdint.Uint32.lognot x)
+    | MUint64 i -> MUint64 (Stdint.Uint64.lognot x)
+    | MInt8 i -> MInt8 (Stdint.Int8.lognot x)
+    | MInt16 i -> MInt16 (Stdint.Int16.lognot x)
+    | MInt32 i -> MInt32 (Stdint.Int32.lognot x)
+    | MInt64 i -> MInt64 (Stdint.Int64.lognot x)
 
 
-(* Disjunction *)
-let rec bv_or_aux (bv1 : t) (bv2 : t) (acc : t) : t =
-  match bv1, bv2 with
-  | [], [] -> acc
-  | h1 :: t1, h2 :: t2 -> bv_or_aux t1 t2 (List.append acc [h1 || h2])
-  | _ -> assert false
+(* ********************************************************************** *)
+(* Conversion Operators                                                   *)
+(* ********************************************************************** *)
 
-let bv_or (bv1 : t) (bv2 : t) : t =
-  if ((List.length bv1) != (List.length bv2)) then
-    raise ComparingUnequalBVs
-  else
-    bv_or_aux bv1 bv2 []
+(* uintN -> uint8 *)
+let to_uint8 (x : t) : t = 
+  match x with
+  | MUint8 i -> MUint8 i
+  | MUint16 i -> MUint16 (Stdint.Uint8.of_uint16 i)
+  | MUint32 i -> MUint32 (Stdint.Uint8.of_uint32 i)
+  | MUint64 i -> MUint64 (Stdint.Uint8.of_uint64 i)
+  | _ -> raise NonStandardBVSize
 
+(* uintN -> uint16 *)
+let to_uint16 (x : t) : t = 
+  match x with
+  | MUint8 i -> MUint16 (Stdint.Uint16.of_uint8 i)
+  | MUint16 i -> MUint16 i
+  | MUint32 i -> MUint16 (Stdint.Uint16.of_uint32 i)
+  | MUint64 i -> MUint16 (Stdint.Uint16.of_uint64 i)
+  | _ -> raise NonStandardBVSize
 
-(* Negation *)
-let rec bv_not_aux (bv : t) (acc : t) : t =
-  match bv with
-  | [] -> acc
-  | h :: t -> bv_not_aux t (List.append acc [not h])
+(* uintN -> uint32 *)
+let to_uint32 (x : t) : t = 
+  match x with
+  | MUint8 i -> MUint32 (Stdint.Uint32.of_uint8 i)
+  | MUint16 i -> MUint32 (Stdint.Uint32.of_uint16 i)
+  | MUint32 i -> MUint32 i
+  | MUint64 i -> MUint32 (Stdint.Uint32.of_uint64 i)
+  | _ -> raise NonStandardBVSize
 
-let bv_not (bv : t) : t =
-  bv_not_aux bv []
+(* uintN -> uint64 *)
+let to_uint64 (x : t) : t = 
+  match x with
+  | MUint8 i -> MUint64 (Stdint.Uint64.of_uint8 i)
+  | MUint16 i -> MUint64 (Stdint.Uint64.of_uint16 i)
+  | MUint32 i -> MUint64 (Stdint.Uint64.of_uint32 i)
+  | MUint64 i -> MUint64 i
+  | _ -> raise NonStandardBVSize
+
+to_int8
+
+to_int16
+
+to_int32
+
+to_int64
+
 
 
 (* ********************************************************************** *)
@@ -612,7 +392,7 @@ let rec equal bv1 bv2 =
   match bv1, bv2 with
   | [], [] -> true
   | h1 :: t1, h2 :: t2 -> (h1 = h2) && (equal t1 t2)
-  | _ -> raise ComparingUnequalBVs
+  | _ -> raise UnequalBVs
 
 (* Unsigned lesser than *)
 let rec ult bv1 bv2 = 
@@ -623,7 +403,7 @@ let rec ult bv1 bv2 =
     | true, false -> false
     | false, true -> true 
     | _ -> (ult t1 t2))
-  | _ -> raise ComparingUnequalBVs
+  | _ -> raise UnequalBVs
 
 (* Unsigned greater than *)
 let rec ugt bv1 bv2 =
@@ -634,7 +414,7 @@ let rec ugt bv1 bv2 =
     | false, true -> false
     | true, false -> true
     | _ -> (ugt t1 t2))
-  | _ -> raise ComparingUnequalBVs
+  | _ -> raise UnequalBVs
 
 (* Unsigned lesser than or equal to *)
 let rec ulte bv1 bv2 =
@@ -645,7 +425,7 @@ let rec ulte bv1 bv2 =
     | false, true -> true
     | true, false -> false
     | _ -> (ulte t1 t2))
-  | _ -> raise ComparingUnequalBVs
+  | _ -> raise UnequalBVs
 
 (* Unsigned greater than or equal to *)
 let rec ugte bv1 bv2 =
@@ -656,7 +436,7 @@ let rec ugte bv1 bv2 =
     | true, false -> true
     | false, true -> false
     | _ -> (ugte t1 t2))
-  | _ -> raise ComparingUnequalBVs
+  | _ -> raise UnequalBVs
 
 (* Signed lesser than *)
 let lt (bv1 : t) (bv2 : t) : bool = 
