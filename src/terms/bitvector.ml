@@ -647,10 +647,18 @@ let pp_smtlib_print_bitvector ppf b =
   | MInt64 i -> fprint ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
   | _ -> raise NonStandardBVSize
 
-let bitvector_of_string s = 
-  let s_lst = String.split_on_char s in
-  bv_str = List.nth s_lst 1 in
-  size = List.nth s_lst 2 in
+let bitvector_of_string (s : string) : t  = 
+  let s_lst = String.split_on_char ' ' s in
+  let bv_str = List.nth s_lst 1 in
+  let size_str = List.nth s_lst 2 in
+  let bv_str_len = ((String.length bv_str) - 2) in
+    match size_str with
+    | "8)" -> Stdint.Uint8.of_string (String.sub bv_str 2 bv_str_len)
+    | "16)" -> Stdint.Uint16.of_string (String.sub bv_str 2 bv_str_len)
+    | "32)" -> Stdint.Uint32.of_string (String.sub bv_str 2 bv_str_len)
+    | "64)" -> Stdint.Uint64.of_string (String.sub bv_str 2 bv_str_len)
+    | _ -> raise NonStandardBVSize
+
 (* Association list of hexadecimal digits to bitvectors *)
 let hex_bv_table = 
   [("0", [false; false; false; false]);
