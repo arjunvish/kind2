@@ -634,87 +634,23 @@ let rec list_from_n l n =
 (* Pretty-printing                                                        *)
 (* ********************************************************************** *)
 
-(* Pretty-print a bitvector in binary format without #b prefix *)
-let rec pp_print_bitvector_b' ppf = function 
-  | [] -> ()
-  | true :: tl -> pp_print_int ppf 1; pp_print_bitvector_b' ppf tl
-  | false :: tl -> pp_print_int ppf 0; pp_print_bitvector_b' ppf tl
+(* Pretty-print a bitvector in SMTLib decimal format *)
+let pp_smtlib_print_bitvector ppf b =
+  match b with 
+  | MUint8 i -> fprintf ppf "(_ bv%s 8)" (Stdint.Uint8.to_string i)
+  | MUint16 i -> fprintf ppf "(_ bv%s 16)" (Stdint.Uint16.to_string i)
+  | MUint32 i -> fprintf ppf "(_ bv%s 32)" (Stdint.Uint32.to_string i)
+  | MUint64 i -> fprintf ppf "(_ bv%s 64)" (Stdint.Uint64.to_string i)
+  | MInt8 i -> fprint ppf "(_ bv%s 8)" (Stdint.Uint8.to_string (Stdint.Uint8.of_int8 i))
+  | MInt16 i -> fprint ppf "(_ bv%s 16)" (Stdint.Uint16.to_string (Stdint.Uint16.of_int16 i))
+  | MInt32 i -> fprint ppf "(_ bv%s 32)" (Stdint.Uint32.to_string (Stdint.Uint32.of_int32 i))
+  | MInt64 i -> fprint ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
+  | _ -> raise NonStandardBVSize
 
-(* Pretty-print a bitvector in SMTLIB binary format *)
-let pp_smtlib_print_bitvector_b ppf b = 
-  fprintf ppf "#b%a" pp_print_bitvector_b' b
-
-
-(* Pretty-print a bitvector in Yices' binary format *)
-let pp_yices_print_bitvector_b ppf b = 
-  fprintf ppf "0b%a" pp_print_bitvector_b' b
-
-(* Pretty-print a bitvector in Yices' binary format given the decimal value and size *)
-let pp_yices_print_bitvector_d ppf i s = 
-  let size = (Numeral.to_int s) in
-  let b = (match size with
-    | 8 -> num_to_ubv8 i
-    | 16 -> num_to_ubv16 i
-    | 32 -> num_to_ubv32 i
-    | 64 -> num_to_ubv64 i
-    | _ -> raise NonStandardBVSize) 
-  in
-    fprintf ppf "0b%a" pp_print_bitvector_b' b
-
-(* Pretty-print a bitvector in SMTLIB extended decimal format *)
-let pp_smtlib_print_bitvector_d ppf n size = 
-  fprintf ppf "(_ bv%s %s)" (Numeral.string_of_numeral n) (Numeral.string_of_numeral size)
-
-(* Association list of bitvectors to hexadecimal digits *)
-let bv_hex_table = 
-  [([false; false; false; false], "0");
-   ([false; false; false; true],  "1");
-   ([false; false; true; false],  "2");
-   ([false; false; true; true],   "3");
-   ([false; true; false; false],  "4");
-   ([false; true; false; true],   "5");
-   ([false; true; true; false],   "6");
-   ([false; true; true; true],    "7");
-   ([true; false; false; false],  "8");
-   ([true; false; false; true],   "9");
-   ([true; false; true; false],   "A");
-   ([true; false; true; true],    "B");
-   ([true; true; false; false],   "C");
-   ([true; true; false; true],    "D");
-   ([true; true; true; false],    "E");
-   ([true; true; true; true]),    "F"]
-
-(* Pretty-print a bitvector in hexadecimal format *)
-let rec pp_print_bitvector_x' ppf = function
-
-  (* Print nothing for the empty bitvector *)
-  | [] -> ()
-
-  (* Pad with a false bit if less than four bits *)
-  | d :: ([] as tl)
-  | d :: ([_] as tl) 
-  | d :: ([_; _] as tl) ->
-    pp_print_bitvector_x' ppf (false :: d :: tl)
-
-  (* Print a hexadecimal digit for the first four bits *)
-  | d1 :: d2 :: d3 :: d4 :: tl -> 
-    pp_print_string 
-      ppf 
-      (List.assoc ([d1; d2; d3; d4]) bv_hex_table);
-    pp_print_bitvector_x' ppf tl
-
-(* Pretty-print a bitvector in hexadecimal format *)
-let pp_print_bitvector_x ppf b = 
-  
-  pp_print_string ppf "#X";
-  
-  match (List.length b) mod 4 with 
-    | 0 -> pp_print_bitvector_x' ppf b
-    | i -> 
-      pp_print_bitvector_x' ppf (list_first_n b i);
-      pp_print_bitvector_x' ppf (list_from_n b i)
-
-
+let bitvector_of_string s = 
+  let s_lst = String.split_on_char s in
+  bv_str = List.nth s_lst 1 in
+  size = List.nth s_lst 2 in
 (* Association list of hexadecimal digits to bitvectors *)
 let hex_bv_table = 
   [("0", [false; false; false; false]);
