@@ -5,7 +5,7 @@ open Lib
 type t =  
   | MUint8 of Stdint.Uint8.t
   | MUint16 of Stdint.Uint16.t
-  | MUint32 of Stdint.Uint32.t
+  | MUint16 of Stdint.Uint16.t
   | MUint64 of Stdint.Uint64.t
   | MInt8 of Stdint.Int8.t
   | MInt16 of Stdint.Int16.t
@@ -15,50 +15,6 @@ type t =
 exception NonBinaryDigit
 exception UnequalBVs
 exception NonStandardBVSize
-
-(* Function that converts a single binary integer digit to Boolean *)
-(*let bin_to_bool (digit : int) : bool =
-  match digit with 
-  | 0 -> false
-  | 1 -> true
-  | _ -> raise NonBinaryDigit*)
-
-(* Function that inputs bit b, integer n, and repeats b n times *)
-let rec repeat_bit (b : bool) (n : int) : t =
- match n with
- | 0 -> []
- | n -> b :: repeat_bit b (n - 1)
-
-(* Function that returns the first bit of bitvector b *)
-let first_bit (b : t) : bool =
-  match b with
-  | h :: t -> h
-  | _ -> raise NonStandardBVSize
-
-(* Function that extracts m down to n from the input bitvector *)
-let rec bvextract (m : int) (n : int) (b : t) : t =
-  let b_rev = (List.rev b) in
-    if (m < n) then 
-      raise NonStandardBVSize
-    else if (n != 0) then
-      raise NonStandardBVSize
-    else
-      match m with
-      | 0 -> [List.hd b_rev]
-      | m' -> (List.nth b_rev m') :: (bvextract (m' - 1) n b)
-
-(* Function that sign extends the input bitvector by m bits *)
-let rec bvsignext (m : int) (b : t) : t =
-  let sign = List.hd b in
-    let rec repeat (m : int) (b : bool) : t =
-      match m with
-      | 0 -> []
-      | m' -> b :: repeat (m' - 1) b 
-    in List.append (repeat m sign) b
-
-(* Function that concatenates the input bitvectors *)
-let rec bvconcat (b1 : t) (b2 : t) : t =
-  List.append b1 b2
 
 
 (* ********************************************************************** *)
@@ -409,9 +365,47 @@ let to_int64 (x : t) : t =
   | MInt64 i -> MInt64 i
   | _ -> raise NonStandardBVSize
 
+(*  
+(* Binary bitvector -> machine integer *)
+
+(* Function that converts a binary character to numeral *)
+let char_to_num (c : char) : Numeral.t =
+  match c with 
+  | '0' -> Numeral.zero
+  | '1' -> Numeral.one
+  | _ -> raise NonBinaryDigit
+
+(* Function that calculates the nth power of two *)
+let rec pow2 (n : Numeral.t) : Numeral.t =
+  if (Numeral.equal n Numeral.zero) then
+    Numeral.one
+  else
+    Numeral.mult (Numeral.succ (Numeral.one)) 
+                 (pow2 (Numeral.sub n Numeral.one))
+
+(*Function that returns the numeral corresponding to a binary bitvector *)
+let rec num_of_bin_string_aux (s : string) (size : int) (acc : Numeral.t) : Numeral.t =
+  if(size = 0) then acc else
+    let new_acc = Numeral.add (Numeral.mult (pow2 (Numeral.of_int (size - 1))) (char_to_num s.[0])) acc in
+      num_of_bin_string_aux (String.sub s 1 (size - 1) ) (size - 1) new_acc
+
+let num_of_bin_string (s : string) (size : int) : Numeral.t =
+  num_of_bin_string_aux s size Numeral.zero
+
+let rec of_bin_string_aux (index : int) (size : int) (s : string) (acc : t) : t =
+  if (s.[0] = "1" then 
+let of_bin_string (s : string) (size : int) : t =
+  match size with
+  | 8 -> MUint8 Stdint.Uint8.of_string (Numeral.string_of_numeral (num_of_bin_string s 8))
+  | 16 -> MUint16 (of_bin_string_aux 0 16 s (MUint16 0))
+  | 32 -> MUint32 (of_bin_string_aux 0 32 s (MUint32 0))
+  | 64 -> MUint64 (of_bin_string_aux 0 64 s (MUint64 0))
+  | _ -> raise NonStandardBVSize
+*)
+
 
 (* ********************************************************************** *)
-(* Shift operators                                                   *)
+(* Shift operators                                                        *)
 (* ********************************************************************** *)
 
 (* Shift left *)
@@ -469,7 +463,7 @@ let bvshl (x : t) (y : t) : t =
 
 
 (* Shift right *)
-let bvshl (x : t) (y : t) : t =
+let bvshr (x : t) (y : t) : t =
   match x, y with
   | MUint8 i, MUint8 j ->
       if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
@@ -604,32 +598,6 @@ let gte (x : t) (y : t) : bool =
   | _, _ -> raise UnequalBVs
 
 
-
-
-(* ********************************************************************** *)
-(* Auxiliary Functions                                                    *)
-(* ********************************************************************** *)
-
-(* Return the first n elements of a list *)
-let rec list_first_n' a l n =
-  if n = 0 then a else 
-    list_first_n' 
-      ((try List.nth l (pred n) with 
-        | Failure _ -> invalid_arg "list_first_n") :: a) 
-      l
-      (pred n) 
-
-(* Return the first n elements of a list *)
-let list_first_n l n = list_first_n' [] l n 
-
-
-let rec list_from_n l n = 
-  if n = 0 then l else
-    list_from_n 
-      (try List.tl l with Failure _ -> invalid_arg "list_from_n")
-      (pred n)
-
-
 (* ********************************************************************** *)
 (* Pretty-printing                                                        *)
 (* ********************************************************************** *)
@@ -647,7 +615,26 @@ let pp_smtlib_print_bitvector ppf b =
   | MInt64 i -> fprint ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
   | _ -> raise NonStandardBVSize
 
-let bitvector_of_string (s : string) : t  = 
+      
+(* ********************************************************************** *)
+(* Conversions                                                            *)
+(* ********************************************************************** *)
+
+(* Convert a sequence of binary digits 
+   beginning with "0b" to a constant bitvector *)
+let bitvector_of_string_b (s : string) (size : int) : t =
+  match size with
+  | 8 -> MUint8 (Stdint.Uint8.of_string s) 
+  | 16 -> MUint16 (Stdint.Uint16.of_string s)
+  | 32 -> MUint32 (Stdint.Uint32.of_string s)
+  | 64 -> MUint64 (Stdint.Uint64.of_string s)
+  | _ -> raise NonStandardBVSize
+
+(* Convert an SMTLib style bitvector literal 
+   of the form (_ bvN S) where N is the decimal numeral
+   representing the bitvector and S is its size
+   to a constant bitvector *)
+let bitvector_of_string_d (s : string) : t  = 
   let s_lst = String.split_on_char ' ' s in
   let bv_str = List.nth s_lst 1 in
   let size_str = List.nth s_lst 2 in
@@ -659,138 +646,18 @@ let bitvector_of_string (s : string) : t  =
     | "64)" -> Stdint.Uint64.of_string (String.sub bv_str 2 bv_str_len)
     | _ -> raise NonStandardBVSize
 
-(* Association list of hexadecimal digits to bitvectors *)
-let hex_bv_table = 
-  [("0", [false; false; false; false]);
-   ("1", [false; false; false; true]);
-   ("2", [false; false; true; false]);
-   ("3", [false; false; true; true]);
-   ("4", [false; true; false; false]);
-   ("5", [false; true; false; true]);
-   ("6", [false; true; true; false]);
-   ("7", [false; true; true; true]);
-   ("8", [true; false; false; false]);
-   ("9", [true; false; false; true]);
-   ("A", [true; false; true; false]);
-   ("B", [true; false; true; true]);
-   ("C", [true; true; false; false]);
-   ("D", [true; true; false; true]);
-   ("E", [true; true; true; false]);
-   ("F", [true; true; true; true]);
-   ("a", [true; false; true; false]);
-   ("b", [true; false; true; true]);
-   ("c", [true; true; false; false]);
-   ("d", [true; true; false; true]);
-   ("e", [true; true; true; false]);
-   ("f", [true; true; true; true])] 
-
-(* Convert a sequence of hexadecimal digits to a constant bitvector *)
-let rec bitvector_of_string_x a i s = 
-  
-  if i <= 1 then a else
-    
-    try 
-
-      bitvector_of_string_x
-        ((List.assoc (String.sub s i 1) hex_bv_table ) @ a)
-        (pred i)
-        s
-
-    with Not_found -> 
-
-      raise (Invalid_argument "bitvector_of_string")
-    
-      
-(* ********************************************************************** *)
-(* Conversions                                                            *)
-(* ********************************************************************** *)
-
-(* Convert an OCaml integer to an infinite-precision integer numeral *)
-let numeral_of_int i = HString.mk_hstring (Printf.sprintf "%i%!" i)
-
-(* Constant zero *)
-let num_zero = numeral_of_int 0
-
-(* Constant one *)
-let num_one = numeral_of_int 1
-
-(* Convert an OCaml float to an infinite-precision real decimal *)
-let decimal_of_float f = 
-
-  if floor f = ceil f then 
-    HString.mk_hstring (Printf.sprintf "%F0%!" f)
-  else
-    HString.mk_hstring (Printf.sprintf "%F%!" f)
-      
-(* Convert an infinite-precision integer numeral to an OCaml integer *)
-let int_of_numeral n = int_of_string (HString.string_of_hstring n)
-
-(* Convert an OCaml float to an infinite-precision real decimal *)
-let float_of_decimal d = float_of_string (HString.string_of_hstring d)
-
-(* Convert a bitvector to an integer *)
-let int_of_bitvector b = 
-  List.fold_left (fun a b -> a lsl 1 + (if b then 1 else 0)) 0 b
-
-(* Convert a bitvector to an integer *)
-let length_of_bitvector b = List.length b
-
-(* A sequence of digits without leading zero *)
-let numeral_of_string s = 
-
-  try
-
-    (* Scan string as a signed integer and discard*)
-    Scanf.sscanf s "%_d%!" ();
-
-    (* Return as string *)
-    HString.mk_hstring s
-
-  with 
-
-    (* Raise exception if scanning fails *)
-    | Scanf.Scan_failure _
-    | End_of_file
-    | Failure _ -> raise (Invalid_argument "smtlib_numeral_of_string")
-
-
-(* A numeral followed by a decimal point followed by a sequence of digits *)
-let decimal_of_string s = 
-  
-  try 
-    
-    (* Ensure that string consists of exactly a signed decimal, a
-       decimal point and an unsigned decimal *)
-    Scanf.sscanf s "%_d.%_u%!" ();
-
-    (* Scan string as a floating point number and discard *)
-    Scanf.sscanf s "%_f" ();
-
-    (* Return as string *)
-    HString.mk_hstring s
-
-  with 
-
-    (* Raise exception if scanning fails *)
-    | Scanf.Scan_failure _
-    | End_of_file
-    | Failure _ -> raise (Invalid_argument "smtlib_decimal_of_string")
-
-
-(* Convert a sequence of binary digits to a constant bitvector *)
-let rec bitvector_of_string_b (a : t) (i : int) (s : string) : t = 
-
-  if i <= 1 then a else
-    
-    match String.sub s i 1 with 
-
-      | "0" -> bitvector_of_string_b (false :: a) (pred i) s
-      | "1" -> bitvector_of_string_b (true :: a) (pred i) s
-      | _ -> raise (Invalid_argument "bitvector_of_string")
+(* Convert a sequence of hex digits 
+   beginning with "0x" to a constant bitvector *)
+let bitvector_of_string_x (s : string) (size : int) : t =
+  match size with
+  | 8 -> MUint8 (Stdint.Uint8.of_string s)
+  | 16 -> MUint16 (Stdint.Uint16.of_string s)
+  | 32 -> MUint32 (Stdint.Uint32.of_string s)
+  | 64 -> MUint64 (Stdint.Uint64.of_string s)
+  | _ -> raise NonStandardBVSize
 
 (* Convert a string to a constant bitvector *)
 let bitvector_of_string s = 
-
   match 
     
     (* First two characters must be #b or #x *)
@@ -803,92 +670,27 @@ let bitvector_of_string s =
   with 
       
     (* Convert from a binary string *)
-    | "#b" | "0b" -> bitvector_of_string_b [] ((String.length s) - 1) s
+    | "#b" -> let len = ((String.length s) - 2) in
+              let str = (String.sub s 2 len) in
+              let str_list = ["0b";str] in
+              let new_str = String.concat "" str_list in
+              (bitvector_of_string_b s len)
+    
+    | "0b" -> let len = ((String.length s) - 2) in
+              (bitvector_of_string_b s len)
 
     (* Convert from a hexadecimal string *)
-    | "#x" -> bitvector_of_string_x [] ((String.length s) - 1) s
+    | "#x" -> let len = ((String.length s) - 2) in
+              let str = (String.sub s 2 len) in
+              let str_list = ["0x";str] in
+              let new_str = String.concat "" str_list in
+              (bitvector_of_string_x s len)
 
     (* Convert from a decimal string *)
-    | "_ " -> 
-      let f n s = (n, s) in
-        let (n, s) =
-          (try 
-            Scanf.sscanf s "(_ bv%d %d)" f (*use %Ld and %u here to account for 64 bit ints*)
-           with
-           Scanf.Scan_failure _ -> 
-            raise (Invalid_argument "bitvector_of_string"))
-        in (num_to_bv (Numeral.of_int s) (Numeral.of_int n))
-        (*with
-          | "bv" -> [false;false;true;true]
-
-            let len = String.length s in
-              let lenminus1 = (len - 1) in
-
-              match
-              (try 
-                String.sub s lenminus1 1)
-               with
-                Invalid_argument _ ->
-                  raise (Invalid_argument "bitvector_of_string"))
-
-              with 
-                | ")" ->
-
-                  let substr = String.sub s 5 (len - 6) in
-                    let num_list = (String.split_on_char ' ' substr) in
-                      let n = (List.nth num_list 0) in
-                        let s = (List.nth num_list 1) in
-                          let n_num = (int_of_string n) in
-                            let s_num = (int_of_string s) in
-                              int_to_bv s_num n_num
-                
-                | _ -> raise (Invalid_argument "bitvector_of_string")
-          
-          | _ -> raise (Invalid_argument "bitvector_of_string")*)
-
+    | "(_" -> (bitvector_of_string_d s)
+      
     (* Invalid prefix *)
     | _ -> raise (Invalid_argument "bitvector_of_string")
-
-
-(* Cache for conversions of strings to numerals *)
-let hstring_numeral_cache = HString.HStringHashtbl.create 7
-
-(* Convert a hashconsed string to a numeral using the cache *)
-let numeral_of_hstring s =
-
-  (* Return cached value if available *)
-  try HString.HStringHashtbl.find hstring_numeral_cache s with 
-
-    | Not_found -> 
-      
-      (* Convert string to a numeral *)
-      let n = numeral_of_string (HString.string_of_hstring s) in
-      
-      (* Add to cache *)
-      HString.HStringHashtbl.add hstring_numeral_cache s n;
-
-      (* Return numeral *)
-      n
-
-(* Cache for conversions of strings to decimals *)
-let hstring_decimal_cache = HString.HStringHashtbl.create 7
-
-(* Convert a hashconsed string to a decimal using the cache *)
-let decimal_of_hstring s =
-
-  (* Return cached value if available *)
-  try HString.HStringHashtbl.find hstring_decimal_cache s with 
-
-    | Not_found -> 
-      
-      (* Convert string to a decimal *)
-      let n = decimal_of_string (HString.string_of_hstring s) in
-      
-      (* Add to cache *)
-      HString.HStringHashtbl.add hstring_decimal_cache s n;
-
-      (* Return decimal *)
-      n
 
 (* Cache for conversions of strings to bitvectors *)
 let hstring_bitvector_cache = HString.HStringHashtbl.create 7
@@ -910,31 +712,60 @@ let bitvector_of_hstring s =
       (* Return bitvector *)
       n
 
-(* Convert an infinite-precision integer numeral to a string *)
-let string_of_numeral s = HString.string_of_hstring s 
+(* Return length of bitvector *)
+let length_of_bitvector (b : t) : int = 
+  match b with
+  | MUint8 _ | MInt8 _ -> 8
+  | MUint16 _ | MInt16 _ -> 16
+  | MUint32 _ | MInt32 _ -> 32
+  | MUint64 _ | MInt64 _ -> 64
 
-(* Convert an infinite-precision real decimal to a string *)
-let string_of_decimal s = HString.string_of_hstring s 
-
-(* Convert a hashconsed string to a Boolean value *)
-let bool_of_hstring s = bool_of_string (HString.string_of_hstring s) 
-
-
+  
 (* ********************************************************************** *)
-(* Infix comparison operators                                             *)
+(* Infix operators                                             *)
 (* ********************************************************************** *)
+
+(* Addition *)
+let ( + ) = add
+
+(* Subtraction *)
+let ( - ) = sub
+
+(* Multiplication *)
+let ( * ) = mul
+
+(* Division *)
+let ( / ) = div
+
+(* Remainder *)
+let ( % ) = rem
+
+(* Bitwise and *)
+let ( & ) = logand
+
+(* Bitwise or *)
+let ( | ) = logor
+
+(* Bitwise not *)
+let ( ~ ) = lognot
+
+(* Shift left *)
+let ( << ) = bvshl
+
+(* Shift right *)
+let ( >> ) = bvshr
 
 (* Equality *)
 let ( = ) = equal
 
-(* Signed lesser than *)
+(* Less than *)
 let ( < ) = lt
 
-(* Signed greater than *)
+(* Greater than *)
 let ( > ) = gt
 
-(* Signed lesser than or equal to *)
+(* Less than or equal to *)
 let ( <= ) = lte
 
-(* Signed greater than or equal to *)
+(* Greater than or equal to *)
 let ( >= ) = gte
