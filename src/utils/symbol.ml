@@ -509,6 +509,16 @@ let is_bitvector = function
   | { Hashcons.node = `BV _ } -> true 
   | _ -> false
 
+(* Return true if the symbol is an unsigned bitvector *)
+let is_unsigned_bv = function
+  | {Hashcons.node = `BV b } -> Bitvector.is_unsigned b
+  | _ -> false
+
+(* Return true if the symbol is a signed bitvector *)
+let is_signed_bv = function
+  | {Hashcons.node = `BV b } -> Bitvector.is_signed b
+  | _ -> false
+
 (* Return true if the symbol is an unsigned bitvector of size 8 *)
 let is_ubv8 = function
   | { Hashcons.node = `BV n } -> (Bitvector.is_uint8 n)
@@ -526,7 +536,7 @@ let is_ubv32 = function
 
 (* Return true if the symbol is an unsigned bitvector of size 64 *)
 let is_ubv64 = function
-  | { Hashcons.node = `UBV n } -> (Bitvector.is_uint64 n)
+  | { Hashcons.node = `BV n } -> (Bitvector.is_uint64 n)
   | _ -> false
 
 (* Return true if the symbol is a bitvector of size 8 *)

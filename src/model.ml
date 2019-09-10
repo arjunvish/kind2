@@ -217,25 +217,7 @@ let pp_print_value ?as_type ppf v = match v, as_type with
   )
   | Term t, Some ty when Type.is_bitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      let s = Bitvector.length_of_bitvector bv in
-        let bv_num = (match s with 
-        | 8 -> Bitvector.bv8_to_num bv
-        | 16 -> Bitvector.bv16_to_num bv
-        | 32 -> Bitvector.bv32_to_num bv
-        | 64 -> Bitvector.bv64_to_num bv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
-          Numeral.pp_print_numeral ppf bv_num
-
-  | Term t, Some ty when Type.is_ubitvector ty ->
-    let ubv = Term.bitvector_of_term t in
-      let s = Bitvector.length_of_bitvector ubv in
-        let ubv_num = (match s with 
-        | 8 -> Bitvector.ubv8_to_num ubv
-        | 16 -> Bitvector.ubv16_to_num ubv
-        | 32 -> Bitvector.ubv32_to_num ubv
-        | 64 -> Bitvector.ubv64_to_num ubv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
-          Numeral.pp_print_numeral ppf ubv_num
+      Bitvector.pp_print_bitvector ppf bv
 
   | Term t, _ -> (*Type.pp_print_type2 ppf (Term.type_of_term t);*)pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l
@@ -249,24 +231,8 @@ let pp_print_value_xml ?as_type ppf v =  match v, as_type with
     |> Format.pp_print_string ppf
   | Term t, Some ty when Type.is_bitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      let s = Bitvector.length_of_bitvector bv in
-        let bv_num = (match s with 
-        | 8 -> Bitvector.bv8_to_num bv
-        | 16 -> Bitvector.bv16_to_num bv
-        | 32 -> Bitvector.bv32_to_num bv
-        | 64 -> Bitvector.bv64_to_num bv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
-          Numeral.pp_print_numeral ppf bv_num
-  | Term t, Some ty when Type.is_ubitvector ty ->
-    let ubv = Term.bitvector_of_term t in
-      let s = Bitvector.length_of_bitvector ubv in
-        let ubv_num = (match s with 
-        | 8 -> Bitvector.ubv8_to_num ubv
-        | 16 -> Bitvector.ubv16_to_num ubv
-        | 32 -> Bitvector.ubv32_to_num ubv
-        | 64 -> Bitvector.ubv64_to_num ubv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
-          Numeral.pp_print_numeral ppf ubv_num
+      Bitvector.pp_print_bitvector ppf bv
+
   | Term t, _ -> pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l
   | Map m, _ ->

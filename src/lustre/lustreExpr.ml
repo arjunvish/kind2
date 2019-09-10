@@ -302,24 +302,7 @@ let string_of_symbol = function
   | `EQ -> "="
   | `NUMERAL n -> Numeral.string_of_numeral n
   | `DECIMAL d -> Decimal.string_of_decimal d
-  | `UBV b -> 
-          let bi = 
-            (match Bitvector.length_of_bitvector b with
-            | 8 -> Bitvector.ubv8_to_num b
-            | 16 -> Bitvector.ubv16_to_num b
-            | 32 -> Bitvector.ubv32_to_num b
-            | 64 -> Bitvector.ubv64_to_num b
-            | _ -> raise BV_size_mismatch) in
-          Numeral.string_of_numeral bi
-  | `BV b -> 
-          let bi = 
-            (match Bitvector.length_of_bitvector b with
-            | 8 -> Bitvector.bv8_to_num b
-            | 16 -> Bitvector.bv16_to_num b
-            | 32 -> Bitvector.bv32_to_num b
-            | 64 -> Bitvector.bv64_to_num b
-            | _ -> raise BV_size_mismatch) in
-          Numeral.string_of_numeral bi
+  | `BV b -> Bitvector.string_of_bitvector b
   | `MINUS -> "-"
   | `PLUS -> "+"
   | `TIMES -> "*"
@@ -606,7 +589,6 @@ and pp_print_app ?as_type safe pvar ppf = function
   | `FALSE
   | `NUMERAL _
   | `DECIMAL _
-  | `UBV _
   | `BV _ 
   | `BV2NAT -> (function _ -> assert false)
 
@@ -1788,26 +1770,29 @@ let mk_to_int expr = mk_unary eval_to_int type_of_to_int expr
 
 (* ********************************************************************** *)
 
+
 (* Evaluate conversion to unsigned integer8 *)
 let eval_to_uint8 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_uint8 expr
+  if (Type.is_uint8 tt) then
+    expr
   else if (Type.is_ubitvector tt) then
-    if (Type.is_uint8 tt) then 
-      expr
-    else
-      Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr
-  else 
-    raise Type_mismatch
+    Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_uint8
+            (Symbol.bitvector_of_symbol s))
+    | _ -> Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr*)
+  else
+    Term.mk_to_uint8 expr
 
- 
-(* Type of conversion to unsigned integer8  
 
-   int: real -> uint8 
-*)
+(* Type of conversion to unsigned integer8  *)
 let type_of_to_uint8 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_uint8 t || Type.is_int t || Type.is_int_range t -> Type.t_ubv 8
   | t when Type.is_uint16 t || Type.is_uint32 t || Type.is_uint64 t -> Type.t_ubv 8
   | _ -> raise Type_mismatch
@@ -1823,25 +1808,32 @@ let mk_to_uint8 expr = mk_unary eval_to_uint8 type_of_to_uint8 expr
 (* Evaluate conversion to unsigned integer16 *)
 let eval_to_uint16 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_uint16 expr
+  if (Type.is_uint16 tt) then
+    expr
   else if (Type.is_ubitvector tt) then
-    if (Type.is_uint16 tt) then
-      expr
-    else if (Type.is_uint8 tt) then
-      Term.mk_bvconcat (Term.mk_ubv (Bitvector.repeat_bit false 8)) expr
-    else
+    if (Type.is_uint8 tt) then
+      Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 8)) expr
+    else 
       Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_uint16
+            (Symbol.bitvector_of_symbol s))
+    | _ -> 
+        if (Type.is_uint8 tt) then
+          Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 8)) expr
+        else 
+          Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr*)
   else
-    raise Type_mismatch
+    Term.mk_to_uint16 expr
 
 
-(* Type of conversion to unsigned integer16  
-
-   int: real -> uint16 
-*)
+(* Type of conversion to unsigned integer16 *)
 let type_of_to_uint16 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_uint16 t || Type.is_int t || Type.is_int_range t -> Type.t_ubv 16
   | t when Type.is_uint8 t || Type.is_uint32 t || Type.is_uint64 t -> Type.t_ubv 16
   | _ -> raise Type_mismatch
@@ -1853,32 +1845,44 @@ let mk_to_uint16 expr = mk_unary eval_to_uint16 type_of_to_uint16 expr
 
 (* ********************************************************************** *)
 
+
 (* Evaluate conversion to unsigned integer32 *)
 let eval_to_uint32 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_uint32 expr
+  if (Type.is_uint32 tt) then
+    expr
   else if (Type.is_ubitvector tt) then
-    if (Type.is_uint32 tt) then
-      expr
-    else if (Type.is_uint8 tt) then
-      Term.mk_bvconcat (Term.mk_ubv (Bitvector.repeat_bit false 24)) expr
+    if (Type.is_uint8 tt) then
+      Term.mk_bvconcat 
+        (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 16)) (Term.mk_bv (Bitvector.zero 8))) 
+        expr
     else if (Type.is_uint16 tt) then
-      Term.mk_bvconcat (Term.mk_ubv (Bitvector.repeat_bit false 16)) expr
-    else
+      Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 16)) expr
+    else  
       Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr
-      (*let n = Term.mk_bv2nat expr in
-      Term.mk_to_uint32 n*)
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_uint32
+            (Symbol.bitvector_of_symbol s))
+    | _ -> 
+        if (Type.is_uint8 tt) then
+          Term.mk_bvconcat 
+            (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 16)) (Term.mk_bv (Bitvector.zero 8))) 
+            expr
+        else if (Type.is_uint16 tt) then
+          Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 16)) expr
+        else  
+          Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr*)
   else
-    raise Type_mismatch
+    Term.mk_to_uint32 expr
 
 
-(* Type of conversion to unsigned integer32  
-
-   int: real -> uint32 
-*)
+(* Type of conversion to unsigned integer32 *)
 let type_of_to_uint32 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_uint32 t || Type.is_int t || Type.is_int_range t -> Type.t_ubv 32 
   | t when Type.is_uint8 t || Type.is_uint16 t || Type.is_uint64 t -> Type.t_ubv 32
   | _ -> raise Type_mismatch
@@ -1890,30 +1894,52 @@ let mk_to_uint32 expr = mk_unary eval_to_uint32 type_of_to_uint32 expr
 
 (* ********************************************************************** *)
 
+
 (* Evaluate conversion to unsigned integer64 *)
 let eval_to_uint64 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_uint64 expr
+  if (Type.is_uint64 tt) then
+    expr
   else if (Type.is_ubitvector tt) then
-    if (Type.is_uint64 tt) then
-      expr
-    else if (Type.is_uint32 tt) then
-      Term.mk_bvconcat (Term.mk_ubv (Bitvector.repeat_bit false 32)) expr
+    if (Type.is_uint8 tt) then
+      Term.mk_bvconcat 
+        (Term.mk_bvconcat 
+          (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) (Term.mk_bv (Bitvector.zero 16)))
+          (Term.mk_bv (Bitvector.zero 8))) 
+        expr
     else if (Type.is_uint16 tt) then
-      Term.mk_bvconcat (Term.mk_ubv (Bitvector.repeat_bit false 48)) expr
-    else
-      Term.mk_bvconcat (Term.mk_ubv (Bitvector.repeat_bit false 56)) expr
+      Term.mk_bvconcat 
+        (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) (Term.mk_bv (Bitvector.zero 16))) 
+        expr
+    else  
+      Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) expr
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_uint64
+            (Symbol.bitvector_of_symbol s))
+    | _ -> 
+        if (Type.is_uint8 tt) then
+          Term.mk_bvconcat 
+            (Term.mk_bvconcat 
+              (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) (Term.mk_bv (Bitvector.zero 16)))
+              (Term.mk_bv (Bitvector.zero 8))) 
+            expr
+        else if (Type.is_uint16 tt) then
+          Term.mk_bvconcat 
+            (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) (Term.mk_bv (Bitvector.zero 16))) 
+            expr
+        else  
+          Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) expr*)
   else
-    raise Type_mismatch
+    Term.mk_to_uint64 expr
 
 
-(* Type of conversion to unsigned integer64  
-
-   int: real -> int64 
-*)
+(* Type of conversion to unsigned integer64  *)
 let type_of_to_uint64 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_uint64 t || Type.is_int t || Type.is_int_range t -> Type.t_ubv 64 
   | t when Type.is_uint8 t || Type.is_uint16 t || Type.is_uint32 t -> Type.t_ubv 64
   | _ -> raise Type_mismatch
@@ -1925,26 +1951,29 @@ let mk_to_uint64 expr = mk_unary eval_to_uint64 type_of_to_uint64 expr
 
 (* ********************************************************************** *)
 
+
 (* Evaluate conversion to integer8 *)
 let eval_to_int8 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_int8 expr
+  if (Type.is_int8 tt) then
+    expr
   else if (Type.is_bitvector tt) then
-    if (Type.is_int8 tt) then 
-      expr
-    else
-      Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr
-  else 
-    raise Type_mismatch
+    Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_int8
+            (Symbol.bitvector_of_symbol s))
+    | _ -> Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr*)
+  else
+    Term.mk_to_int8 expr
 
 
-(* Type of conversion to integer8  
-
-   int: real -> int8 
-*)
+(* Type of conversion to integer8 *)
 let type_of_to_int8 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_int8 t || Type.is_int t || Type.is_int_range t -> Type.t_bv 8
   | t when Type.is_int16 t || Type.is_int32 t || Type.is_int64 t -> Type.t_bv 8
   | _ -> raise Type_mismatch
@@ -1960,25 +1989,32 @@ let mk_to_int8 expr = mk_unary eval_to_int8 type_of_to_int8 expr
 (* Evaluate conversion to integer16 *)
 let eval_to_int16 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_int16 expr
+  if (Type.is_int16 tt) then
+    expr
   else if (Type.is_bitvector tt) then
-    if (Type.is_int16 tt) then 
-      expr
-    else if (Type.is_int8 tt) then
+    if (Type.is_int8 tt) then
       Term.mk_bvsignext (Numeral.of_int 8) expr
-    else
+    else 
       Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr
-  else 
-    raise Type_mismatch
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_int16
+            (Symbol.bitvector_of_symbol s))
+    | _ -> 
+        if (Type.is_int8 tt) then
+          Term.mk_bvsignext (Numeral.of_int 8) expr
+        else 
+          Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr*)
+  else
+    Term.mk_to_int16 expr
 
 
-(* Type of conversion to integer16  
-
-   int: real -> int16 
-*)
+(* Type of conversion to integer16 *)
 let type_of_to_int16 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_int16 t || Type.is_int t || Type.is_int_range t -> Type.t_bv 16
   | t when Type.is_int8 t || Type.is_int32 t || Type.is_int64 t -> Type.t_bv 16
   | _ -> raise Type_mismatch
@@ -1993,27 +2029,36 @@ let mk_to_int16 expr = mk_unary eval_to_int16 type_of_to_int16 expr
 (* Evaluate conversion to integer32 *)
 let eval_to_int32 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_int32 expr
+  if (Type.is_int32 tt) then
+    expr
   else if (Type.is_bitvector tt) then
-    if (Type.is_int32 tt) then 
-      expr
-    else if (Type.is_int64 tt) then
-      Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr
-    else if (Type.is_int8 tt) then
+    if (Type.is_int8 tt) then
       Term.mk_bvsignext (Numeral.of_int 24) expr
-    else
+    else if (Type.is_int16 tt) then
       Term.mk_bvsignext (Numeral.of_int 16) expr
-  else 
-    raise Type_mismatch
+    else  
+      Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_int32
+            (Symbol.bitvector_of_symbol s))
+    | _ -> 
+        if (Type.is_int8 tt) then
+          Term.mk_bvsignext (Numeral.of_int 24) expr
+        else if (Type.is_int16 tt) then
+          Term.mk_bvsignext (Numeral.of_int 16) expr
+        else  
+          Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr*)
+  else
+    Term.mk_to_int32 expr
 
 
-(* Type of conversion to integer32  
-
-   int: real -> int32 
-*)
+(* Type of conversion to integer32  *)
 let type_of_to_int32 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_int32 t || Type.is_int t || Type.is_int_range t -> Type.t_bv 32
   | t when Type.is_int8 t || Type.is_int16 t || Type.is_int64 t -> Type.t_bv 32
   | _ -> raise Type_mismatch
@@ -2025,30 +2070,40 @@ let mk_to_int32 expr = mk_unary eval_to_int32 type_of_to_int32 expr
 
 (* ********************************************************************** *)
 
+
 (* Evaluate conversion to integer64 *)
 let eval_to_int64 expr =
   let tt = Term.type_of_term expr in
-  if (Type.is_int tt) then
-    Term.mk_to_int64 expr
+  if (Type.is_int64 tt) then
+    expr
   else if (Type.is_bitvector tt) then
-    if (Type.is_int64 tt) then 
-      expr
-    else if (Type.is_int8 tt) then
+    if (Type.is_int8 tt) then
       Term.mk_bvsignext (Numeral.of_int 56) expr
     else if (Type.is_int16 tt) then
       Term.mk_bvsignext (Numeral.of_int 48) expr
-    else
+    else  
       Term.mk_bvsignext (Numeral.of_int 32) expr
-  else 
-    raise Type_mismatch
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    match Term.destruct expr with
+    | Term.T.Const s ->
+        Term.mk_bv 
+          (Bitvector.to_int64
+            (Symbol.bitvector_of_symbol s))
+    | _ -> 
+        if (Type.is_int8 tt) then
+          Term.mk_bvsignext (Numeral.of_int 56) expr
+        else if (Type.is_int16 tt) then
+          Term.mk_bvsignext (Numeral.of_int 48) expr
+        else  
+          Term.mk_bvsignext (Numeral.of_int 32) expr*)
+  else
+    Term.mk_to_int64 expr
 
 
-(* Type of conversion to integer64  
-
-   int: real -> int64 
-*)
+(* Type of conversion to integer64 *)
 let type_of_to_int64 = function
-  | t when Type.is_real t -> Type.t_int
   | t when Type.is_int64 t || Type.is_int t || Type.is_int_range t -> Type.t_bv 64
   | t when Type.is_int8 t || Type.is_int16 t || Type.is_int32 t -> Type.t_bv 64
   | _ -> raise Type_mismatch
@@ -2059,6 +2114,7 @@ let mk_to_int64 expr = mk_unary eval_to_int64 type_of_to_int64 expr
 
 
 (* ********************************************************************** *)
+
 
 (* Evaluate conversion to real *)
 let eval_to_real expr =
@@ -2075,6 +2131,7 @@ let eval_to_real expr =
 
     | _ -> Term.mk_to_real expr
     | exception Invalid_argument _ -> Term.mk_to_real expr
+
 
 (* Type of conversion to real  
 
@@ -2118,6 +2175,7 @@ let type_of_and = type_of_bool_bool_bool
 (* Boolean conjunction *)
 let mk_and expr1 expr2 = mk_binary eval_and type_of_and expr1 expr2 
 
+
 (* n-ary Boolean conjunction *)
 let mk_and_n = function
   | [] -> t_true
@@ -2152,6 +2210,7 @@ let type_of_or = type_of_bool_bool_bool
 
 (* Boolean disjunction *)
 let mk_or expr1 expr2 = mk_binary eval_or type_of_or expr1 expr2 
+
 
 (* n-ary Boolean disjunction *)
 let mk_or_n = function
@@ -2217,7 +2276,9 @@ let type_of_impl = type_of_bool_bool_bool
 (* Boolean implication *)
 let mk_impl expr1 expr2 = mk_binary eval_impl type_of_impl expr1 expr2 
 
+
 (* ********************************************************************** *)
+
 
 let mk_let bindings expr =
   {
@@ -2226,7 +2287,9 @@ let mk_let bindings expr =
     expr_type = expr.expr_type;
   }
 
+
 (* ********************************************************************** *)
+
 
 let apply_subst sigma expr =
   {
@@ -2235,7 +2298,9 @@ let apply_subst sigma expr =
     expr_type = expr.expr_type;
   }
 
+
 (* ********************************************************************** *)
+
 
 (* Evaluate universal quantification *)
 let eval_forall vars t = match vars, t with
@@ -2246,12 +2311,14 @@ let eval_forall vars t = match vars, t with
 
 let type_of_forall = type_of_bool_bool
 
+
 (* Universal quantification*)
 let mk_forall vars expr =
   mk_unary (eval_forall vars) type_of_forall expr
 
 
 (* ********************************************************************** *)
+
 
 (* Evaluate existential quantification *)
 let eval_exists vars t = match vars, t with
@@ -2261,6 +2328,7 @@ let eval_exists vars t = match vars, t with
   | _ -> Term.mk_exists vars t 
 
 let type_of_exists = type_of_bool_bool
+
 
 (* Existential quantification*)
 let mk_exists vars expr = mk_unary (eval_exists vars) type_of_exists expr
@@ -2280,6 +2348,16 @@ let eval_mod expr1 expr2 =
       Term.mk_num 
         Numeral.(Symbol.numeral_of_symbol c1 mod 
                  Symbol.numeral_of_symbol c2) 
+
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.            
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.(Symbol.bitvector_of_symbol c1 %
+                   Symbol.bitvector_of_symbol c2)*)
     
     | _ -> (if Type.is_ubitvector (Term.type_of_term expr1) then 
               Term.mk_bvurem [expr1; expr2]
@@ -2337,6 +2415,7 @@ let type_of_mod = function
       | _ -> raise Type_mismatch)
   | _ -> raise Type_mismatch
 
+
 (* Integer modulus *)
 let mk_mod expr1 expr2 = mk_binary eval_mod type_of_mod expr1 expr2 
 
@@ -2362,6 +2441,16 @@ let eval_minus expr1 expr2 =
       Term.mk_dec
         Decimal.(Symbol.decimal_of_symbol c1 -
                  Symbol.decimal_of_symbol c2) 
+
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.(Symbol.bitvector_of_symbol c1 -
+                   Symbol.bitvector_of_symbol c2)*)
 
     | _ -> (if ((Type.is_bitvector (Term.type_of_term expr1)) 
             && (Type.is_bitvector (Term.type_of_term expr1))) then
@@ -2417,6 +2506,16 @@ let eval_plus expr1 expr2 =
       Term.mk_dec
         Decimal.(Symbol.decimal_of_symbol c1 +
                  Symbol.decimal_of_symbol c2) 
+
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.(Symbol.bitvector_of_symbol c1 +
+                   Symbol.bitvector_of_symbol c2)*)
   
     | _ -> (if (((Type.is_bitvector (Term.type_of_term expr1)) 
                   && (Type.is_bitvector (Term.type_of_term expr2)))
@@ -2427,7 +2526,7 @@ let eval_plus expr1 expr2 =
             else 
               Term.mk_plus [expr1; expr2])
 
-  | exception Invalid_argument _ -> Term.mk_plus [expr1; expr2]
+    | exception Invalid_argument _ -> Term.mk_plus [expr1; expr2]
 
 
 (* Type of addition 
@@ -2521,7 +2620,17 @@ let eval_times expr1 expr2 =
 
       Term.mk_dec
         Decimal.(Symbol.decimal_of_symbol c1 *
-                 Symbol.decimal_of_symbol c2) 
+                 Symbol.decimal_of_symbol c2)
+
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.(Symbol.bitvector_of_symbol c1 *
+                   Symbol.bitvector_of_symbol c2)*)
 
     | _ -> (if (Type.is_bitvector (Term.type_of_term expr1) ||
                 Type.is_ubitvector (Term.type_of_term expr1)) then 
@@ -2529,7 +2638,7 @@ let eval_times expr1 expr2 =
             else 
               Term.mk_times [expr1; expr2])
 
-  | exception Invalid_argument _ -> Term.mk_times [expr1; expr2]
+    | exception Invalid_argument _ -> Term.mk_times [expr1; expr2]
 
 
 (* Type of multiplication
@@ -2558,6 +2667,16 @@ let eval_intdiv expr1 expr2 =
         Numeral.(Symbol.numeral_of_symbol c1 /
                  Symbol.numeral_of_symbol c2)                 
 
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.(Symbol.bitvector_of_symbol c1 /
+                   Symbol.bitvector_of_symbol c2)*)
+
     | _ -> (if Type.is_ubitvector (Term.type_of_term expr1) then 
               Term.mk_bvudiv [expr1; expr2]
             else if Type.is_bitvector (Term.type_of_term expr1) then
@@ -2565,7 +2684,7 @@ let eval_intdiv expr1 expr2 =
             else 
               Term.mk_intdiv [expr1; expr2])
 
-  | exception Invalid_argument _ -> Term.mk_intdiv [expr1; expr2]
+    | exception Invalid_argument _ -> Term.mk_intdiv [expr1; expr2]
 
 
 (* Type of integer division
@@ -2614,7 +2733,6 @@ let type_of_intdiv t t' =
     )
   
 
-
 (* Integer division *)
 let mk_intdiv expr1 expr2 = mk_binary eval_intdiv type_of_intdiv expr1 expr2 
 
@@ -2625,10 +2743,21 @@ let mk_intdiv expr1 expr2 = mk_binary eval_intdiv type_of_intdiv expr1 expr2
 (* Evaluate bitvector conjunction *)
 let eval_bvand expr1 expr2 = 
 
-  match Term.destruct expr1, Term.destruct expr2 with              
+  match Term.destruct expr1, Term.destruct expr2 with
+
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.logand 
+          (Symbol.bitvector_of_symbol c1)
+          (Symbol.bitvector_of_symbol c2)*)
     
-  | _ -> Term.mk_bvand [expr1; expr2]
-  | exception Invalid_argument _ -> Term.mk_bvand [expr1; expr2]
+    | _ -> Term.mk_bvand [expr1; expr2]
+    | exception Invalid_argument _ -> Term.mk_bvand [expr1; expr2]
 
 
 (* Type of bitvector conjunction*)
@@ -2646,8 +2775,20 @@ let mk_bvand expr1 expr2 = mk_binary eval_bvand type_of_bvand expr1 expr2
 let eval_bvor expr1 expr2 = 
 
   match Term.destruct expr1, Term.destruct expr2 with
-  | _ -> Term.mk_bvor [expr1; expr2]
-  | exception Invalid_argument _ -> Term.mk_bvor [expr1; expr2]
+
+    (* We can't do this because a "constant" (u)intN in Lustre, which 
+       looks like ((u)intN x) - never is a constant at the term level. 
+       It is an application.
+    | Term.T.Const c1, Term.T.Const c2 when
+        Symbol.is_bitvector c1 && Symbol.is_bitvector c2 ->
+
+      Term.mk_bv
+        Bitvector.logor 
+          (Symbol.bitvector_of_symbol c1)
+          (Symbol.bitvector_of_symbol c2)*)
+    
+    | _ -> Term.mk_bvor [expr1; expr2]
+    | exception Invalid_argument _ -> Term.mk_bvor [expr1; expr2]
 
 
 (* Type of bitvector disjunction *)

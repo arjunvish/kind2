@@ -63,6 +63,12 @@ val num_to_bv64 : Numeral.t -> t
 val bv_to_num : t -> Numeral.t
 
 
+(** {Constants} *)
+
+(** Return bitvector zero of given size *)
+val zero : int -> t
+
+
 (** {Arithmetic Operations} *)
 
 (** Addition *)
@@ -155,6 +161,8 @@ val gte : t -> t -> bool
 (** Pretty-print a constant bitvector in SMTLIB decimal format *)
 val pp_smtlib_print_bitvector : Format.formatter -> t -> unit
 
+val pp_print_bitvector : Format.formatter -> t -> unit
+
 
 (** {Conversions} *)
 (** Convert a string to a bitvector
@@ -165,6 +173,9 @@ val bitvector_of_string : string -> t
 (** Convert a hashconsed string to a bitvector, store all converted
     values in a cache *)
 val bitvector_of_hstring : HString.t -> t
+
+(** Convert bitvector to string *)
+val string_of_bitvector : t -> string
 
 
 (** {Other functions} *)

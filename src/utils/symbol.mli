@@ -308,7 +308,10 @@ val is_decimal : t -> bool
 val is_bitvector : t -> bool
 
 (** Return true if the symbol is an unsigned bitvector *)
-val is_ubitvector : t -> bool
+val is_unsigned_bv : t -> bool
+
+(** Return true if the symbol is a signed bitvector *)
+val is_signed_bv : t -> bool
 
 (** Return true if the symbol is an unsigned bitvector of size 8 *)
 val is_ubv8 : t -> bool

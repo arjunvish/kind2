@@ -136,6 +136,18 @@ let bv_to_num (b : t) : Numeral.t =
 
 
 (* ********************************************************************** *)
+(* Constants                                                              *)
+(* ********************************************************************** *)
+let zero (size : int) : t =
+  match size with 
+  | 8 -> MUint8 (Stdint.Uint8.zero)
+  | 16 -> MUint16 (Stdint.Uint16.zero)
+  | 32 -> MUint32 (Stdint.Uint32.zero)
+  | 64 -> MUint64 (Stdint.Uint64.zero)
+  | _ -> raise NonStandardBVSize
+
+
+(* ********************************************************************** *)
 (* Arithmetic Operations                                                  *)
 (* ********************************************************************** *)
 
@@ -587,6 +599,18 @@ let pp_smtlib_print_bitvector ppf b =
   | MInt32 i -> fprintf ppf "(_ bv%s 32)" (Stdint.Uint32.to_string (Stdint.Uint32.of_int32 i))
   | MInt64 i -> fprintf ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
 
+(* Pretty-print a bitvector as a numeral *)
+let pp_print_bitvector ppf b =
+  match b with
+  | MUint8 i -> Stdint.Uint8.printer ppf i
+  | MUint16 i -> Stdint.Uint16.printer ppf i
+  | MUint32 i -> Stdint.Uint32.printer ppf i
+  | MUint64 i -> Stdint.Uint64.printer ppf i
+  | MInt8 i -> Stdint.Int8.printer ppf i
+  | MInt16 i -> Stdint.Int16.printer ppf i
+  | MInt32 i -> Stdint.Int32.printer ppf i
+  | MInt64 i -> Stdint.Int64.printer ppf i
+
       
 (* ********************************************************************** *)
 (* Conversions                                                            *)
@@ -683,6 +707,18 @@ let bitvector_of_hstring s =
 
       (* Return bitvector *)
       n
+
+(* Convert bitvector to string *)
+let string_of_bitvector (b : t) : string = 
+  match b with
+  | MUint8 i -> Stdint.Uint8.to_string i
+  | MUint16 i -> Stdint.Uint16.to_string i
+  | MUint32 i -> Stdint.Uint32.to_string i
+  | MUint64 i -> Stdint.Uint64.to_string i
+  | MInt8 i -> Stdint.Int8.to_string i
+  | MInt16 i -> Stdint.Int16.to_string i
+  | MInt32 i -> Stdint.Int32.to_string i
+  | MInt64 i -> Stdint.Int64.to_string i
 
 
 (* ********************************************************************** *)
