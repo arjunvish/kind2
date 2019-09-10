@@ -291,33 +291,7 @@ let bitvector_of_term t = match destruct t with
   | T.Const s when Symbol.is_bitvector s -> 
       Symbol.bitvector_of_symbol s
 
-  | T.Const s when Symbol.is_ubitvector s -> 
-      Symbol.ubitvector_of_symbol s
-
   | _ -> invalid_arg "bitvector_of_term"
-
-
-(* Return signed bitvector constant of a term *)
-(* This function is to be used for terms before 
-   they are sent to the SMT solver. *)
-let sbitvector_of_term t = match destruct t with
-
-  (* Term is a signed bitvector constant *)
-  | T.Const s when Symbol.is_bitvector s -> Symbol.bitvector_of_symbol s
-
-  | _ -> invalid_arg "sbitvector_of_term"
-
-
-(* Return unsigned bitvector constant of a term *)
-(* This function is to be used for terms before 
-   they are sent to the SMT solver. *)
-let ubitvector_of_term t = match destruct t with
-
-  (* Term is an unsigned bitvector constant *)
-  | T.Const s when Symbol.is_ubitvector s -> Symbol.ubitvector_of_symbol s
-
-  | _ -> invalid_arg "ubitvector_of_term"
-
 
 (* Return decimal constant of a term *)
 let rec decimal_of_term t = 

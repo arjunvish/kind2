@@ -712,6 +712,11 @@ let bitvector_of_hstring s =
       (* Return bitvector *)
       n
 
+
+(* ********************************************************************** *)
+(* Other functions                                                        *)
+(* ********************************************************************** *)
+
 (* Return length of bitvector *)
 let length_of_bitvector (b : t) : int = 
   match b with
@@ -720,9 +725,62 @@ let length_of_bitvector (b : t) : int =
   | MUint32 _ | MInt32 _ -> 32
   | MUint64 _ | MInt64 _ -> 64
 
-  
+
 (* ********************************************************************** *)
-(* Infix operators                                             *)
+(* Discriminators                                                         *)
+(* ********************************************************************** *)
+
+(* Return true if b is an unsigned machine integer of size 8 *)
+let is_uint8 (b : t) : bool =
+  match b with
+  | Muint8 _ -> true
+  | _ -> false
+
+(* Return true if b is an unsigned machine integer of size 16 *)
+let is_uint16 (b : t) : bool =
+  match b with
+  | Muint16 _ -> true
+  | _ -> false
+
+(* Return true if b is an unsigned machine integer of size 32 *)
+let is_uint32 (b : t) : bool =
+  match b with
+  | Muint32 _ -> true
+  | _ -> false
+
+(* Return true if b is an unsigned machine integer of size 64 *)
+let is_uint64 (b : t) : bool =
+  match b with
+  | Muint64 _ -> true
+  | _ -> false
+
+(* Return true if b is a signed machine integer of size 8 *)
+let is_int8 (b : t) : bool =
+  match b with
+  | Mint8 _ -> true
+  | _ -> false
+
+(* Return true if b is a signed machine integer of size 16 *)
+let is_int16 (b : t) : bool =
+  match b with
+  | Mint16 _ -> true
+  | _ -> false
+
+(* Return true if b is a signed machine integer of size 32 *)
+let is_int32 (b : t) : bool =
+  match b with
+  | Mint32 _ -> true
+  | _ -> false
+
+(* Return true if b is a signed machine integer of size 64 *)
+let is_int64 (b : t) : bool =
+  match b with
+  | Mint64 _ -> true
+  | _ -> false
+
+
+(* ********************************************************************** *)
+(* Infix operators                                                        *)
 (* ********************************************************************** *)
 
 (* Addition *)

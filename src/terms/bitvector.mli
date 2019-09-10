@@ -1,4 +1,4 @@
-(* This file is part of the Kind 2 model checker.
+(** This file is part of the Kind 2 model checker.
 
    Copyright (c) 2015 by the Board of Trustees of the University of Iowa
 
@@ -74,71 +74,71 @@ val one : t
 
 (** {Arithmetic Operations} *)
 
-(* Addition *)
+(** Addition *)
 val add : t -> t -> t
  
-(* Subtraction *)
+(** Subtraction *)
 val sub : t -> t -> t
  
-(* Multiplication *)
+(** Multiplication *)
 val mul : t -> t -> t
  
-(* Division *)
-(* Raises Division_by_zero exception if second argument is zero *)
+(** Division *)
+(** Raises Division_by_zero exception if second argument is zero *)
 val div : t -> t -> t
  
-(* Remainder *)
-(* Raises Division_by_zero exception if second argument is zero *)
+(** Remainder *)
+(** Raises Division_by_zero exception if second argument is zero *)
 val rem : t -> t -> t
  
-(* Negation *)
+(** Negation *)
 val neg : t -> t
 
 
 (** {Logical Operations} *)
 
-(* Bitwise and *)
+(** Bitwise and *)
 val logand : t -> t -> t
  
-(* Bitwise or *)
+(** Bitwise or *)
 val logor : t -> t -> t
  
-(* Bitwise not *)
+(** Bitwise not *)
 val lognot : t -> t -> t
 
 
 (** {Conversion Operations} *)
 
-(* uintN -> uint8 *)
+(** uintN -> uint8 *)
 val to_uint8 : t -> t 
  
-(* uintN -> uint16 *)
+(** uintN -> uint16 *)
 val to_uint16 : t -> t 
  
-(* uintN -> uint32 *)
+(** uintN -> uint32 *)
 val to_uint32 : t -> t 
  
-(* uintN -> uint64 *)
+(** uintN -> uint64 *)
 val to_uint64 : t -> t 
  
-(* intN -> int8 *)
+(** intN -> int8 *)
 val to_int8 : t -> t
  
-(* intN -> int16 *)
+(** intN -> int16 *)
 val to_int16 : t -> t
  
-(* intN -> int32 *)
+(** intN -> int32 *)
 val to_int32 : t -> t
 
-(* intN -> int64 *)
+(** intN -> int64 *)
 val to_int64 : t -> t
 
 
 (** {Shift Operators} *)
-(* Shift left *)
+(** Shift left *)
 val bvshl : t -> t -> t
  
-(* Shift right *)
+(** Shift right *)
 val bvshr : t -> t -> t
 
 
@@ -162,7 +162,7 @@ val gte : t -> t -> bool
 
 (** {Pretty Printing} *)
 (** Pretty-print a constant bitvector in SMTLIB decimal format *)
-val pp_smtlib_print_bitvector_b : Format.formatter -> t -> unit
+val pp_smtlib_print_bitvector : Format.formatter -> t -> unit
 
 
 (** {Conversions} *)
@@ -178,52 +178,80 @@ val bitvector_of_hstring : HString.t -> t
 (** Convert a hashconsed string to a Boolean value *)
 val bool_of_hstring : HString.t -> bool
 
+
+(** {Other functions} *)
 (** Return the length of a bitvector *)
 val length_of_bitvector : t -> int
 
 
+(** {Discriminators} *)
+(** Returns true for an unsigned machine integer of size 8 *)
+val is_uint8 : t -> bool
+
+(** Returns true for an unsigned machine integer of size 16 *)
+val is_uint16 : t -> bool
+
+(** Returns true for an unsigned machine integer of size 32 *)
+val is_uint32 : t -> bool
+
+(** Returns true for an unsigned machine integer of size 64 *)
+val is_uint64 : t -> bool
+
+(** Returns true for a signed machine integer of size 8 *)
+val is_int8 : t -> bool
+  
+(** Returns true for a signed machine integer of size 16 *)
+val is_int16 : t -> bool
+  
+(** Returns true for a signed machine integer of size 32 *)
+val is_int32 : t -> bool
+  
+(** Returns true for a signed machine integer of size 64 *)
+val is_int64 : t -> bool
+
+
 (** {Infix Operators} *)
-(* Addition *)
+(** Addition *)
 val ( + ) : t -> t -> t
 
-(* Subtraction *)
+(** Subtraction *)
 val ( - ) : t -> t -> t
 
-(* Multiplication *)
+(** Multiplication *)
 val ( * ) : t -> t -> t
 
-(* Division *)
+(** Division *)
 val ( / ) : t -> t -> t
 
-(* Remainder *)
+(** Remainder *)
 val ( % ) : t -> t -> t
 
-(* Bitwise and *)
+(** Bitwise and *)
 val ( & ) : t -> t -> t
 
-(* Bitwise or *)
+(** Bitwise or *)
 val ( | ) : t -> t -> t
 
-(* Bitwise not *)
+(** Bitwise not *)
 val ( ~ ) : t -> t -> t
 
-(* Shift left *)
+(** Shift left *)
 val ( << ) : t -> t -> t
 
-(* Shift right *)
+(** Shift right *)
 val ( >> ) : t -> t -> t
 
-(* Equality *)
+(** Equality *)
 val ( : ) : t -> t -> bool
 
-(* Less than *)
+(** Less than *)
 val ( < ) : t -> t -> bool
 
-(* Greater than *)
+(** Greater than *)
 val ( > ) : t -> t -> bool
 
-(* Less than or equal to *)
+(** Less than or equal to *)
 val ( <= ) : t -> t -> bool
 
-(* Greater than or equal to *)
+(** Greater than or equal to *)
 val ( >= ) : t -> t -> bool

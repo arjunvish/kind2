@@ -506,12 +506,6 @@ val numeral_of_term : t -> Numeral.t
 (** Return bitvector constant of a term (sign-agnostic) *)
 val bitvector_of_term : t -> Bitvector.t
 
-(** Return signed bitvector constant of a term *)
-val sbitvector_of_term : t -> Bitvector.t
-
-(** Return unsigned bitvector constant of a term *)
-val ubitvector_of_term : t -> Bitvector.t
-
 (*
 (** Return true if the term is a (sign-agnostic) bitvector consant *)
 val is_bitvector : t -> bool
