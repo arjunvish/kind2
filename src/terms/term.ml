@@ -549,12 +549,13 @@ let rec type_of_term t = match T.destruct t with
         (* Real constant *)
         | `DECIMAL _ -> Type.mk_real ()
 
-        (* Unsigned bitvector constant *)
-        | `UBV b -> Type.mk_ubv (Bitvector.length_of_bitvector b)
-
         (* Bitvector constant *)
-        | `BV b -> Type.mk_bv (Bitvector.length_of_bitvector b)
-        
+        | `BV b -> 
+              if (Bitvector.is_unsigned b) then
+                Type.mk_ubv (Bitvector.length_of_bitvector b)
+              else
+                Type.mk_bv (Bitvector.length_of_bitvector b)
+
         (* Uninterpreted constant *)
         | `UF s -> UfSymbol.res_type_of_uf_symbol s
 
@@ -742,7 +743,6 @@ let rec type_of_term t = match T.destruct t with
         | `FALSE
         | `NUMERAL _
         | `DECIMAL _ 
-        | `UBV _ 
         | `BV _ -> assert false
 
     )
@@ -766,7 +766,6 @@ let type_check_app s a =
     | `FALSE
     | `NUMERAL _
     | `DECIMAL _
-    | `UBV _
     | `BV _
         when List.length a = 0 -> true
 
@@ -1159,20 +1158,16 @@ let mk_dec_of_float = function
 *)
 
 
-(* Hashcons an unsigned bitvector *)
-let mk_ubv b = mk_const_of_symbol_node (`UBV b)
-
 (* Hashcons a bitvector *)
 let mk_bv b = mk_const_of_symbol_node (`BV b)
 
-
-(* Hashcons a signed bitvector addition *)
+(* Hashcons a bitvector addition *)
 let mk_bvadd = function
   | [] -> invalid_arg "Term.mk_bvadd"
   | [a] -> a
   | a -> mk_app_of_symbol_node `BVADD a
 
-(* Hashcons a signed bitvector subtraaction *)
+(* Hashcons a bitvector subtraction *)
 let mk_bvsub = function
   | [] -> invalid_arg "Term.mk_bvsub"
   | [a] -> a
@@ -1184,25 +1179,25 @@ let mk_bvmul = function
   | [a] -> a
   | a -> mk_app_of_symbol_node `BVMUL a
 
-(* Hashcons a bitvector division *)
+(* Hashcons an unsigned bitvector division *)
 let mk_bvudiv = function
   | [] -> invalid_arg "Term.mk_bvdiv"
   | [a] -> a
   | a -> mk_app_of_symbol_node `BVUDIV a
 
-(* Hashcons a bitvector signed division *)
+(* Hashcons a signed bitvector division *)
 let mk_bvsdiv = function
   | [] -> invalid_arg "Term.mk_bvsdiv"
   | [a] -> a
   | a -> mk_app_of_symbol_node `BVSDIV a
 
-(* Hashcons a bitvector modulus *)
+(* Hashcons an unsigned bitvector modulus *)
 let mk_bvurem = function
   | [] -> invalid_arg "Term.mk_bvurem"
   | [a] -> a
   | a -> mk_app_of_symbol_node `BVUREM a
 
-(* Hashcons a bitvector signed modulus *)
+(* Hashcons a signed bitvector modulus *)
 let mk_bvsrem = function
   | [] -> invalid_arg "Term.mk_bvsrem"
   | [a] -> a

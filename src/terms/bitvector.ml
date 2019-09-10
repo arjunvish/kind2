@@ -5,7 +5,7 @@ open Lib
 type t =  
   | MUint8 of Stdint.Uint8.t
   | MUint16 of Stdint.Uint16.t
-  | MUint16 of Stdint.Uint16.t
+  | MUint32 of Stdint.Uint32.t
   | MUint64 of Stdint.Uint64.t
   | MInt8 of Stdint.Int8.t
   | MInt16 of Stdint.Int16.t
@@ -52,12 +52,12 @@ let num_to_ubv (size : Numeral.t) (i : Numeral.t) : t =
   do i modulo m on the input i *)
   let m = pow2 size in
   let n = modulo i m in
-  let str_n = string_of_numeral n in
-    match size with 
-    | Numeral.of_int 8 -> Stdint.Uint8.of_string str_n
-    | Numeral.of_int 16 -> Stdint.Uint16.of_string str_n
-    | Numeral.of_int 32 -> Stdint.Uint32.of_string str_n
-    | Numeral.of_int 64 -> Stdint.Uint64.of_string str_n
+  let str_n = Numeral.string_of_numeral n in
+    match (Numeral.to_int size) with 
+    | 8 -> MUint8 (Stdint.Uint8.of_string str_n)
+    | 16 -> MUint16 (Stdint.Uint16.of_string str_n)
+    | 32 -> MUint32 (Stdint.Uint32.of_string str_n)
+    | 64 -> MUint64 (Stdint.Uint64.of_string str_n)
     | _ -> raise NonStandardBVSize
 
   let num_to_ubv8 = num_to_ubv (Numeral.of_int 8)
@@ -101,12 +101,12 @@ let num_to_bv (size : Numeral.t) (i : Numeral.t) : t =
      i modulo m on the input i *)
   let m = pow2 size in
   let n = signed_modulo i m in
-  let str_n = string_of_numeral n in
-    match size with 
-    | Numeral.of_int 8 -> Stdint.Int8.of_string str_n
-    | Numeral.of_int 16 -> Stdint.Int16.of_string str_n
-    | Numeral.of_int 32 -> Stdint.Int32.of_string str_n
-    | Numeral.of_int 64 -> Stdint.Int64.of_string str_n
+  let str_n = Numeral.string_of_numeral n in
+    match (Numeral.to_int size) with 
+    | 8 -> MInt8 (Stdint.Int8.of_string str_n)
+    | 16 -> MInt16 (Stdint.Int16.of_string str_n)
+    | 32 -> MInt32 (Stdint.Int32.of_string str_n)
+    | 64 -> MInt64 (Stdint.Int64.of_string str_n)
     | _ -> raise NonStandardBVSize
 
 let num_to_bv8 = num_to_bv (Numeral.of_int 8) 
@@ -136,114 +136,87 @@ let bv_to_num (b : t) : Numeral.t =
 
 
 (* ********************************************************************** *)
-(* Constants                                                              *)
-(* ********************************************************************** *)
-
-(* The integer zero *)
-let zero = 
-  | MUint8 (Stdint.Uint8.zero)
-  | MUint16 (Stdint.Uint16.zero)
-  | MUint32 (Stdint.Uint32.zero)
-  | MUint64 (Stdint.Uint64.zero)
-  | MInt8 (Stdint.Int8.zero)
-  | MInt16 (Stdint.Int16.zero)
-  | MInt32 (Stdint.Int32.zero)
-  | MInt64 (Stdint.Int64.zero)
-
-(* The integer one *)
-let one = 
-  | MUint8 (Stdint.Uint8.one)
-  | MUint16 (Stdint.Uint16.one)
-  | MUint32 (Stdint.Uint32.one)
-  | MUint64 (Stdint.Uint64.one)
-  | MInt8 (Stdint.Int8.one)
-  | MInt16 (Stdint.Int16.one)
-  | MInt32 (Stdint.Int32.one)
-  | MInt64 (Stdint.Int64.one)
-
-
-(* ********************************************************************** *)
 (* Arithmetic Operations                                                  *)
 (* ********************************************************************** *)
 
 (* Addition *)
 let add (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.add x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.add x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.add x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.add x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.add x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.add x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.add x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.add x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.add i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.add i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.add i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.add i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.add i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.add i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.add i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.add i j)
     | _ -> raise UnequalBVs
 
 (* Subtraction *)
 let sub (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.sub x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.sub x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.sub x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.sub x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.sub x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.sub x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.sub x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.sub x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.sub i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.sub i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.sub i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.sub i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.sub i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.sub i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.sub i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.sub i j)
     | _ -> raise UnequalBVs
 
 (* Multiplication *)
 let mul (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.mul x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.mul x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.mul x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.mul x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.mul x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.mul x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.mul x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.mul x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.mul i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.mul i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.mul i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.mul i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.mul i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.mul i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.mul i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.mul i j)
     | _ -> raise UnequalBVs
 
 (* Division *)
 (* Raises Division_by_zero exception if second argument is zero *)
 let div (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.div x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.div x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.div x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.div x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.div x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.div x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.div x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.div x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.div i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.div i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.div i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.div i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.div i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.div i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.div i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.div i j)
     | _ -> raise UnequalBVs
 
 (* Remainder *)
 (* Raises Division_by_zero exception if second argument is zero *)
 let rem (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.rem x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.rem x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.rem x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.rem x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.rem x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.rem x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.rem x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.rem x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.rem i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.rem i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.rem i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.rem i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.rem i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.rem i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.rem i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.rem i j)
     | _ -> raise UnequalBVs
 
 (* Negation *)
 let neg (x : t) : t =
   match x with
-    | MUint8 i -> MUint8 (Stdint.Uint8.neg x)
-    | MUint16 i -> MUint16 (Stdint.Uint16.neg x)
-    | MUint32 i -> MUint32 (Stdint.Uint32.neg x)
-    | MUint64 i -> MUint64 (Stdint.Uint64.neg x)
-    | MInt8 i -> MInt8 (Stdint.Int8.neg x)
-    | MInt16 i -> MInt16 (Stdint.Int16.neg x)
-    | MInt32 i -> MInt32 (Stdint.Int32.neg x)
-    | MInt64 i -> MInt64 (Stdint.Int64.neg x)
+    | MUint8 i -> MUint8 (Stdint.Uint8.neg i)
+    | MUint16 i -> MUint16 (Stdint.Uint16.neg i)
+    | MUint32 i -> MUint32 (Stdint.Uint32.neg i)
+    | MUint64 i -> MUint64 (Stdint.Uint64.neg i)
+    | MInt8 i -> MInt8 (Stdint.Int8.neg i)
+    | MInt16 i -> MInt16 (Stdint.Int16.neg i)
+    | MInt32 i -> MInt32 (Stdint.Int32.neg i)
+    | MInt64 i -> MInt64 (Stdint.Int64.neg i)
 
 
 (* ********************************************************************** *)
@@ -253,40 +226,40 @@ let neg (x : t) : t =
 (* Bitwise and *)
 let logand (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.logand x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.logand x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.logand x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.logand x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.logand x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logand x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logand x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logand x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.logand i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.logand i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.logand i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.logand i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.logand i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logand i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logand i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logand i j)
     | _ -> raise UnequalBVs
 
 (* Bitwise or *)
 let logor (x : t) (y : t) : t =
   match x, y with
-    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.logor x y)
-    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.logor x y)
-    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.logor x y)
-    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.logor x y)
-    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.logor x y)
-    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logor x y)
-    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logor x y)
-    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logor x y)
+    | MUint8 i, MUint8 j -> MUint8 (Stdint.Uint8.logor i j)
+    | MUint16 i, MUint16 j -> MUint16 (Stdint.Uint16.logor i j)
+    | MUint32 i, MUint32 j -> MUint32 (Stdint.Uint32.logor i j)
+    | MUint64 i, MUint64 j -> MUint64 (Stdint.Uint64.logor i j)
+    | MInt8 i, MInt8 j -> MInt8 (Stdint.Int8.logor i j)
+    | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logor i j)
+    | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logor i j)
+    | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logor i j)
     | _ -> raise UnequalBVs
 
 (* Bitwise not *)
 let lognot (x : t) : t =
   match x with
-    | MUint8 i -> MUint8 (Stdint.Uint8.lognot x)
-    | MUint16 i -> MUint16 (Stdint.Uint16.lognot x)
-    | MUint32 i -> MUint32 (Stdint.Uint32.lognot x)
-    | MUint64 i -> MUint64 (Stdint.Uint64.lognot x)
-    | MInt8 i -> MInt8 (Stdint.Int8.lognot x)
-    | MInt16 i -> MInt16 (Stdint.Int16.lognot x)
-    | MInt32 i -> MInt32 (Stdint.Int32.lognot x)
-    | MInt64 i -> MInt64 (Stdint.Int64.lognot x)
+    | MUint8 i -> MUint8 (Stdint.Uint8.lognot i)
+    | MUint16 i -> MUint16 (Stdint.Uint16.lognot i)
+    | MUint32 i -> MUint32 (Stdint.Uint32.lognot i)
+    | MUint64 i -> MUint64 (Stdint.Uint64.lognot i)
+    | MInt8 i -> MInt8 (Stdint.Int8.lognot i)
+    | MInt16 i -> MInt16 (Stdint.Int16.lognot i)
+    | MInt32 i -> MInt32 (Stdint.Int32.lognot i)
+    | MInt64 i -> MInt64 (Stdint.Int64.lognot i)
 
 
 (* ********************************************************************** *)
@@ -297,9 +270,9 @@ let lognot (x : t) : t =
 let to_uint8 (x : t) : t = 
   match x with
   | MUint8 i -> MUint8 i
-  | MUint16 i -> MUint16 (Stdint.Uint8.of_uint16 i)
-  | MUint32 i -> MUint32 (Stdint.Uint8.of_uint32 i)
-  | MUint64 i -> MUint64 (Stdint.Uint8.of_uint64 i)
+  | MUint16 i -> MUint8 (Stdint.Uint8.of_uint16 i)
+  | MUint32 i -> MUint8 (Stdint.Uint8.of_uint32 i)
+  | MUint64 i -> MUint8 (Stdint.Uint8.of_uint64 i)
   | _ -> raise NonStandardBVSize
 
 (* uintN -> uint16 *)
@@ -333,35 +306,35 @@ let to_uint64 (x : t) : t =
 let to_int8 (x : t) : t =
   match x with
   | MInt8 i -> MInt8 i
-  | MInt16 i -> MInt8 (Stdint.Int8.of_uint16 i)
-  | MInt32 i -> MInt8 (Stdint.Int8.of_uint32 i)
-  | MInt64 i -> MInt8 (Stdint.Int8.of_uint64 i)
+  | MInt16 i -> MInt8 (Stdint.Int8.of_int16 i)
+  | MInt32 i -> MInt8 (Stdint.Int8.of_int32 i)
+  | MInt64 i -> MInt8 (Stdint.Int8.of_int64 i)
   | _ -> raise NonStandardBVSize
 
 (* intN -> int16 *)
 let to_int16 (x : t) : t =
   match x with
-  | MInt8 i -> MInt16 (Stdint.Int16.of_uint8 i)
+  | MInt8 i -> MInt16 (Stdint.Int16.of_int8 i)
   | MInt16 i -> MInt16 i
-  | MInt32 i -> MInt16 (Stdint.Int16.of_uint32 i)
-  | MInt64 i -> MInt16 (Stdint.Int16.of_uint64 i)
+  | MInt32 i -> MInt16 (Stdint.Int16.of_int32 i)
+  | MInt64 i -> MInt16 (Stdint.Int16.of_int64 i)
   | _ -> raise NonStandardBVSize
 
 (* intN -> int32 *)
 let to_int32 (x : t) : t =
   match x with
-  | MInt8 i -> MInt32 (Stdint.Int32.of_uint8 i)
-  | MInt16 i -> MInt32 (Stdint.Int32.of_uint16 i)
+  | MInt8 i -> MInt32 (Stdint.Int32.of_int8 i)
+  | MInt16 i -> MInt32 (Stdint.Int32.of_int16 i)
   | MInt32 i -> MInt32 i
-  | MInt64 i -> MInt32 (Stdint.Int32.of_uint64 i)
+  | MInt64 i -> MInt32 (Stdint.Int32.of_int64 i)
   | _ -> raise NonStandardBVSize
 
 (* intN -> int64 *)
 let to_int64 (x : t) : t =
   match x with
-  | MInt8 i -> MInt64 (Stdint.Int64.of_uint8 i)
-  | MInt16 i -> MInt64 (Stdint.Int64.of_uint16 i)
-  | MInt32 i -> MInt64 (Stdint.Int64.of_uint32 i)
+  | MInt8 i -> MInt64 (Stdint.Int64.of_int8 i)
+  | MInt16 i -> MInt64 (Stdint.Int64.of_int16 i)
+  | MInt32 i -> MInt64 (Stdint.Int64.of_int32 i)
   | MInt64 i -> MInt64 i
   | _ -> raise NonStandardBVSize
 
@@ -413,51 +386,51 @@ let bvshl (x : t) (y : t) : t =
   match x, y with
   | MUint8 i, MUint8 j ->
       if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
-        Stdint.Uint8.zero
+        MUint8 (Stdint.Uint8.zero)
       else
-        Stdint.Uint8.shift_left i (Stdint.Uint8.to_int j)
+        MUint8 (Stdint.Uint8.shift_left i (Stdint.Uint8.to_int j))
 
   | MUint16 i, MUint16 j ->
       if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
-        Stdint.Uint16.zero
+        MUint16 (Stdint.Uint16.zero)
       else
-        Stdint.Uint16.shift_left i (Stdint.Uint16.to_int j)
+        MUint16 (Stdint.Uint16.shift_left i (Stdint.Uint16.to_int j))
 
   | MUint32 i, MUint32 j ->
       if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
-        Stdint.Uint32.zero
+        MUint32 (Stdint.Uint32.zero)
       else
-        Stdint.Uint32.shift_left i (Stdint.Uint32.to_int j)
+        MUint32 (Stdint.Uint32.shift_left i (Stdint.Uint32.to_int j))
 
   | MUint64 i, MUint64 j ->
       if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
-        Stdint.Uint64.zero
+        MUint64 (Stdint.Uint64.zero)
       else
-        Stdint.Uint64.shift_left i (Stdint.Uint64.to_int j)
+        MUint64 (Stdint.Uint64.shift_left i (Stdint.Uint64.to_int j))
 
   | MInt8 i, MUint8 j ->
       if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
-        Stdint.Int8.zero
+        MInt8 (Stdint.Int8.zero)
       else
-        Stdint.Int8.shift_left i (Stdint.Uint8.to_int j)
+        MInt8 (Stdint.Int8.shift_left i (Stdint.Uint8.to_int j))
 
   | MInt16 i, MUint16 j ->
       if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
-        Stdint.Int16.zero
+        MInt16 (Stdint.Int16.zero)
       else
-        Stdint.Int16.shift_left i (Stdint.Uint16.to_int j)
+        MInt16 (Stdint.Int16.shift_left i (Stdint.Uint16.to_int j))
 
   | MInt32 i, MUint32 j ->
       if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
-        Stdint.Int32.zero
+        MInt32 (Stdint.Int32.zero)
       else
-        Stdint.Int32.shift_left i (Stdint.Uint32.to_int j)
+        MInt32 (Stdint.Int32.shift_left i (Stdint.Uint32.to_int j))
 
   | MInt64 i, MUint64 j ->
       if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
-        Stdint.Int64.zero
+        MInt64 (Stdint.Int64.zero)
       else
-        Stdint.Int64.shift_left i (Stdint.Uint64.to_int j)
+        MInt64 (Stdint.Int64.shift_left i (Stdint.Uint64.to_int j))
 
   | _, _ -> raise UnequalBVs
 
@@ -467,63 +440,63 @@ let bvshr (x : t) (y : t) : t =
   match x, y with
   | MUint8 i, MUint8 j ->
       if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
-        Stdint.Uint8.zero
+        MUint8 (Stdint.Uint8.zero)
       else
-        Stdint.Uint8.shift_right_logical i (Stdint.Uint8.to_int j)
+        MUint8 (Stdint.Uint8.shift_right_logical i (Stdint.Uint8.to_int j))
 
   | MUint16 i, MUint16 j ->
       if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
-        Stdint.Uint16.zero
+        MUint16 (Stdint.Uint16.zero)
       else
-        Stdint.Uint16.shift_right_logical i (Stdint.Uint16.to_int j)
+        MUint16 (Stdint.Uint16.shift_right_logical i (Stdint.Uint16.to_int j))
 
   | MUint32 i, MUint32 j ->
       if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
-        Stdint.Uint32.zero
+        MUint32 (Stdint.Uint32.zero)
       else
-        Stdint.Uint32.shift_right_logical i (Stdint.Uint32.to_int j)
+        MUint32 (Stdint.Uint32.shift_right_logical i (Stdint.Uint32.to_int j))
 
   | MUint64 i, MUint64 j ->
       if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
-        Stdint.Uint64.zero
+        MUint64 (Stdint.Uint64.zero)
       else
-        Stdint.Uint64.shift_right_logical i (Stdint.Uint64.to_int j)
+        MUint64 (Stdint.Uint64.shift_right_logical i (Stdint.Uint64.to_int j))
 
   | MInt8 i, MUint8 j ->
       if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
         if((compare i (Stdint.Int8.zero)) < 0) then
-          Stdint.Int8.of_int (-1)
+          MInt8 (Stdint.Int8.of_int (-1))
         else
-          Stdint.Int8.zero
+          MInt8 (Stdint.Int8.zero)
       else
-        Stdint.Int8.shift_right i (Stdint.Uint8.to_int j)
+        MInt8 (Stdint.Int8.shift_right i (Stdint.Uint8.to_int j))
 
   | MInt16 i, MUint16 j ->
-      if ((compare j (Stdint.Uint8.of_int 8)) >= 0) then
-        if((compare i (Stdint.Int8.zero)) < 0) then
-          Stdint.Int8.of_int (-1)
+      if ((compare j (Stdint.Uint16.of_int 16)) >= 0) then
+        if((compare i (Stdint.Int16.zero)) < 0) then
+          MInt16 (Stdint.Int16.of_int (-1))
         else
-          Stdint.Int8.zero
+          MInt16 (Stdint.Int16.zero)
       else
-        Stdint.Int8.shift_right i (Stdint.Uint8.to_int j)
+        MInt16 (Stdint.Int16.shift_right i (Stdint.Uint16.to_int j))
 
   | MInt32 i, MUint32 j ->
       if ((compare j (Stdint.Uint32.of_int 32)) >= 0) then
         if((compare i (Stdint.Int32.zero)) < 0) then
-          Stdint.Int32.of_int (-1)
+          MInt32 (Stdint.Int32.of_int (-1))
         else
-          Stdint.Int32.zero
+          MInt32 (Stdint.Int32.zero)
       else
-        Stdint.Int32.shift_right i (Stdint.Uint32.to_int j)
+        MInt32 (Stdint.Int32.shift_right i (Stdint.Uint32.to_int j))
 
   | MInt64 i, MUint64 j ->
       if ((compare j (Stdint.Uint64.of_int 64)) >= 0) then
         if((compare i (Stdint.Int64.zero)) < 0) then
-          Stdint.Int64.of_int (-1)
+          MInt64 (Stdint.Int64.of_int (-1))
         else
-          Stdint.Int64.zero
+          MInt64 (Stdint.Int64.zero)
       else
-        Stdint.Int64.shift_right i (Stdint.Uint64.to_int j)
+        MInt64 (Stdint.Int64.shift_right i (Stdint.Uint64.to_int j))
   
   | _, _ -> raise UnequalBVs
 
@@ -609,11 +582,10 @@ let pp_smtlib_print_bitvector ppf b =
   | MUint16 i -> fprintf ppf "(_ bv%s 16)" (Stdint.Uint16.to_string i)
   | MUint32 i -> fprintf ppf "(_ bv%s 32)" (Stdint.Uint32.to_string i)
   | MUint64 i -> fprintf ppf "(_ bv%s 64)" (Stdint.Uint64.to_string i)
-  | MInt8 i -> fprint ppf "(_ bv%s 8)" (Stdint.Uint8.to_string (Stdint.Uint8.of_int8 i))
-  | MInt16 i -> fprint ppf "(_ bv%s 16)" (Stdint.Uint16.to_string (Stdint.Uint16.of_int16 i))
-  | MInt32 i -> fprint ppf "(_ bv%s 32)" (Stdint.Uint32.to_string (Stdint.Uint32.of_int32 i))
-  | MInt64 i -> fprint ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
-  | _ -> raise NonStandardBVSize
+  | MInt8 i -> fprintf ppf "(_ bv%s 8)" (Stdint.Uint8.to_string (Stdint.Uint8.of_int8 i))
+  | MInt16 i -> fprintf ppf "(_ bv%s 16)" (Stdint.Uint16.to_string (Stdint.Uint16.of_int16 i))
+  | MInt32 i -> fprintf ppf "(_ bv%s 32)" (Stdint.Uint32.to_string (Stdint.Uint32.of_int32 i))
+  | MInt64 i -> fprintf ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
 
       
 (* ********************************************************************** *)
@@ -640,10 +612,10 @@ let bitvector_of_string_d (s : string) : t  =
   let size_str = List.nth s_lst 2 in
   let bv_str_len = ((String.length bv_str) - 2) in
     match size_str with
-    | "8)" -> Stdint.Uint8.of_string (String.sub bv_str 2 bv_str_len)
-    | "16)" -> Stdint.Uint16.of_string (String.sub bv_str 2 bv_str_len)
-    | "32)" -> Stdint.Uint32.of_string (String.sub bv_str 2 bv_str_len)
-    | "64)" -> Stdint.Uint64.of_string (String.sub bv_str 2 bv_str_len)
+    | "8)" -> MUint8 (Stdint.Uint8.of_string (String.sub bv_str 2 bv_str_len))
+    | "16)" -> MUint16 (Stdint.Uint16.of_string (String.sub bv_str 2 bv_str_len))
+    | "32)" -> MUint32 (Stdint.Uint32.of_string (String.sub bv_str 2 bv_str_len))
+    | "64)" -> MUint64 (Stdint.Uint64.of_string (String.sub bv_str 2 bv_str_len))
     | _ -> raise NonStandardBVSize
 
 (* Convert a sequence of hex digits 
@@ -674,7 +646,7 @@ let bitvector_of_string s =
               let str = (String.sub s 2 len) in
               let str_list = ["0b";str] in
               let new_str = String.concat "" str_list in
-              (bitvector_of_string_b s len)
+              (bitvector_of_string_b new_str len)
     
     | "0b" -> let len = ((String.length s) - 2) in
               (bitvector_of_string_b s len)
@@ -684,7 +656,7 @@ let bitvector_of_string s =
               let str = (String.sub s 2 len) in
               let str_list = ["0x";str] in
               let new_str = String.concat "" str_list in
-              (bitvector_of_string_x s len)
+              (bitvector_of_string_x new_str len)
 
     (* Convert from a decimal string *)
     | "(_" -> (bitvector_of_string_d s)
@@ -733,49 +705,61 @@ let length_of_bitvector (b : t) : int =
 (* Return true if b is an unsigned machine integer of size 8 *)
 let is_uint8 (b : t) : bool =
   match b with
-  | Muint8 _ -> true
+  | MUint8 _ -> true
   | _ -> false
 
 (* Return true if b is an unsigned machine integer of size 16 *)
 let is_uint16 (b : t) : bool =
   match b with
-  | Muint16 _ -> true
+  | MUint16 _ -> true
   | _ -> false
 
 (* Return true if b is an unsigned machine integer of size 32 *)
 let is_uint32 (b : t) : bool =
   match b with
-  | Muint32 _ -> true
+  | MUint32 _ -> true
   | _ -> false
 
 (* Return true if b is an unsigned machine integer of size 64 *)
 let is_uint64 (b : t) : bool =
   match b with
-  | Muint64 _ -> true
+  | MUint64 _ -> true
   | _ -> false
 
 (* Return true if b is a signed machine integer of size 8 *)
 let is_int8 (b : t) : bool =
   match b with
-  | Mint8 _ -> true
+  | MInt8 _ -> true
   | _ -> false
 
 (* Return true if b is a signed machine integer of size 16 *)
 let is_int16 (b : t) : bool =
   match b with
-  | Mint16 _ -> true
+  | MInt16 _ -> true
   | _ -> false
 
 (* Return true if b is a signed machine integer of size 32 *)
 let is_int32 (b : t) : bool =
   match b with
-  | Mint32 _ -> true
+  | MInt32 _ -> true
   | _ -> false
 
 (* Return true if b is a signed machine integer of size 64 *)
 let is_int64 (b : t) : bool =
   match b with
-  | Mint64 _ -> true
+  | MInt64 _ -> true
+  | _ -> false
+
+(* Return true if b is unsigned *)
+let is_unsigned (b : t) : bool =
+  match b with
+  | MUint8 _ | MUint16 _ | MUint32 _ | MUint64 _ -> true
+  | _ -> false
+
+(* Return true if b is unsigned *)
+let is_signed (b : t) : bool =
+  match b with
+  | MInt8 _ | MInt16 _ | MInt32 _ | MInt64 _ -> true
   | _ -> false
 
 
@@ -797,15 +781,6 @@ let ( / ) = div
 
 (* Remainder *)
 let ( % ) = rem
-
-(* Bitwise and *)
-let ( & ) = logand
-
-(* Bitwise or *)
-let ( | ) = logor
-
-(* Bitwise not *)
-let ( ~ ) = lognot
 
 (* Shift left *)
 let ( << ) = bvshl

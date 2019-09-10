@@ -63,15 +63,6 @@ val num_to_bv64 : Numeral.t -> t
 val bv_to_num : t -> Numeral.t
 
 
-(** {Constants} *)
-
-(** Zero *)
-val zero : t
-
-(** One*)
-val one : t
-
-
 (** {Arithmetic Operations} *)
 
 (** Addition *)
@@ -104,7 +95,7 @@ val logand : t -> t -> t
 val logor : t -> t -> t
  
 (** Bitwise not *)
-val lognot : t -> t -> t
+val lognot : t -> t
 
 
 (** {Conversion Operations} *)
@@ -175,9 +166,6 @@ val bitvector_of_string : string -> t
     values in a cache *)
 val bitvector_of_hstring : HString.t -> t
 
-(** Convert a hashconsed string to a Boolean value *)
-val bool_of_hstring : HString.t -> bool
-
 
 (** {Other functions} *)
 (** Return the length of a bitvector *)
@@ -209,6 +197,12 @@ val is_int32 : t -> bool
 (** Returns true for a signed machine integer of size 64 *)
 val is_int64 : t -> bool
 
+(** Return true for an unsigned machine integer *)
+val is_unsigned : t -> bool 
+
+(** Return true for an unsigned machine integer *)
+val is_signed : t -> bool
+
 
 (** {Infix Operators} *)
 (** Addition *)
@@ -226,15 +220,6 @@ val ( / ) : t -> t -> t
 (** Remainder *)
 val ( % ) : t -> t -> t
 
-(** Bitwise and *)
-val ( & ) : t -> t -> t
-
-(** Bitwise or *)
-val ( | ) : t -> t -> t
-
-(** Bitwise not *)
-val ( ~ ) : t -> t -> t
-
 (** Shift left *)
 val ( << ) : t -> t -> t
 
@@ -242,7 +227,7 @@ val ( << ) : t -> t -> t
 val ( >> ) : t -> t -> t
 
 (** Equality *)
-val ( : ) : t -> t -> bool
+val ( = ) : t -> t -> bool
 
 (** Less than *)
 val ( < ) : t -> t -> bool

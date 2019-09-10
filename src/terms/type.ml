@@ -35,8 +35,8 @@ type kindtype =
   | Int
   | IntRange of Numeral.t * Numeral.t * rangekind
   | Real
-  | UBV of Bitvector.t
-  | BV of Bitvector.t
+  | UBV of int
+  | BV of int
   (* First is element type, second is index type, and third is the size *)
   | Array of t * t
   | Abstr of string
@@ -199,18 +199,18 @@ let rec pp_print_type_node ppf = function
   | Real -> Format.pp_print_string ppf "Real"
 
   | UBV i -> 
-    let len = (Bitvector.length_of_bitvector i) in
+
     Format.fprintf
       ppf 
       "(_ BitVec %d)" 
-      len
+      i 
 
   | BV i -> 
-    let len = (Bitvector.length_of_bitvector i) in
+
     Format.fprintf
       ppf 
       "(_ BitVec %d)" 
-      len
+      i
 
   | Array (s, t) -> 
     Format.fprintf
@@ -270,6 +270,7 @@ let rec pp_print_type_node_debug ppf = function
       ppf 
       "(_ SBitVec %d)" 
       i
+
 
   | Array (s, t) -> 
     Format.fprintf

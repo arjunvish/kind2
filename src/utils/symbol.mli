@@ -39,7 +39,6 @@
     {- [`ITE] ternary: if-then-else}
     {- [`NUMERAL i] nullary: integer numeral}
     {- [`DECIMAL f] nullary: floating-point decimal}
-    {- [`UBV b] nullary: constant unsigned bitvector}
     {- [`BV b] nullary: consant bitvector}
     {- [`MINUS] variadic, left-associative: difference or a unary negation}
     {- [`PLUS] variadic, left-associative: sum}
@@ -124,7 +123,6 @@ type interpreted_symbol =
   | `NUMERAL of Numeral.t (** Infinite precision integer numeral (nullary) *)
   | `DECIMAL of Decimal.t  (** infinite precision floating-point decimal (nullary) *)
 
-  | `UBV of Bitvector.t   (** Constant unsigned bitvector *)
   | `BV of Bitvector.t    (** Constant bitvector *)
   
   | `MINUS                (** Difference or unary negation (left-associative) *)
@@ -369,9 +367,6 @@ val decimal_of_symbol : t -> Decimal.t
 
 (** Return the bitvector in a [`BV _] symbol *)
 val bitvector_of_symbol : t -> Bitvector.t
-
-(** Return the ubitvector in a [`UBV _] symbol *)
-val ubitvector_of_symbol : t -> Bitvector.t
 
 (** Return [true] for the [`TRUE] symbol and [false] for the [`FALSE]
     symbol *)
