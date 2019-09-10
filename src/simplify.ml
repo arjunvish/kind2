@@ -54,8 +54,7 @@ type t =
   | Dec of Decimal.t polynomial
   | Bool of Term.t 
   | Array of Term.t 
-  | UBV of Term.t
-  | BV of Term.t
+  | BV of Bitvector.t
 
 let pp_print_monomial pp ppf ((c, t) : 'a monomial) = 
   Format.fprintf 
@@ -182,8 +181,7 @@ let term_of_nf = function
   | Dec p -> term_of_dec_polynomial p
   | Bool b -> b
   | Array b -> b
-  | UBV b -> b
-  | BV b -> b
+  | BV b -> Term.mk_bv b
 
 
 (* ********************************************************************** *)
@@ -219,7 +217,7 @@ let is_constant = function
   | Num (_, [])
   | Dec (_, [])  -> true
   | Bool b when b == Term.t_true || b == Term.t_false -> true
-  | UBV _ | BV _ -> true
+  | BV b -> true
   | Num _ | Dec _ | Bool _ | Array _ -> false
 
 
@@ -744,7 +742,6 @@ let rec negate_nnf term = match Term.destruct term with
       | `TRUE, _
       | `NUMERAL _, _
       | `DECIMAL _, _ 
-      | `UBV _, _
       | `BV _, _ -> assert false
 
       (* Can only negate Boolean terms *)
@@ -1037,7 +1034,7 @@ let relation_leq simplify_term_node =
     Numeral.(>=)
     Decimal.(<=)
     Decimal.(>=)
-    Bitvector.ulte
+    Bitvector.(<=)
     Bitvector.(<=)
     Term.mk_leq 
     Term.mk_geq 
@@ -1053,7 +1050,7 @@ let relation_lt simplify_term_node =
     Numeral.(>)
     Decimal.(<)
     Decimal.(>)
-    Bitvector.lt
+    Bitvector.(<)
     Bitvector.(<)
     Term.mk_lt 
     Term.mk_gt
@@ -1069,7 +1066,7 @@ let relation_geq simplify_term_node =
     Numeral.(<=) 
     Decimal.(>=)
     Decimal.(<=)
-    Bitvector.ugte 
+    Bitvector.(>=)
     Bitvector.(>=)
     Term.mk_geq 
     Term.mk_leq
@@ -1084,7 +1081,7 @@ let relation_gt simplify_term_node =
     Numeral.(<)
     Decimal.(>)
     Decimal.(<)
-    Bitvector.ugt
+    Bitvector.(>)
     Bitvector.(>)
     Term.mk_gt 
     Term.mk_lt
@@ -1260,10 +1257,9 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
              differentiate between signed and unsigned BV types. We 
              do it here before simplifying the model *)
           let v'' = 
-            (if (Type.is_bitvector (Var.type_of_var v)) then
-              Term.mk_bv (Term.bitvector_of_term v')
-             else if (Type.is_ubitvector (Var.type_of_var v)) then
-              Term.mk_ubv (Term.bitvector_of_term v')
+            (if ((Type.is_bitvector (Var.type_of_var v)) || 
+                 (Type.is_ubitvector (Var.type_of_var v))) then
+                Term.mk_bv (Term.bitvector_of_term v')
              else
               v')
           in
@@ -1312,12 +1308,6 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
           (* Propositional constant *)
           | `TRUE -> Bool (Term.t_true)
           | `FALSE -> Bool (Term.t_false)
-
-          (* Unsigned bitvector *)
-          | `UBV b ->
-
-            let tubv = Term.mk_ubv b in 
-              UBV tubv
 
           (* Signed bitvector *)
           | `BV b -> 
@@ -2443,7 +2433,6 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
           | `FALSE
           | `NUMERAL _
           | `DECIMAL _
-          | `UBV _ 
           | `BV _ 
           | `BV2NAT -> assert false
           
