@@ -2277,41 +2277,13 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
               | [BV a] -> BV (Bitvector.neg a)
               | _ -> assert false)
 
-          | `BVEXTRACT (i, j) -> 
-            (match args with
-              | [] -> assert false
-              | [BV b] -> BV (Term.mk_bv (Bitvector.bvextract 
-                                            (Numeral.to_int i) 
-                                            (Numeral.to_int j) 
-                                            (Term.bitvector_of_term b)))            
-              | [UBV b] -> UBV (Term.mk_ubv (Bitvector.bvextract 
-                                              (Numeral.to_int i) 
-                                              (Numeral.to_int j) 
-                                              (Term.bitvector_of_term b)))
-              | _ -> assert false)
+          (* Our bitvector library can't do extracts, sign extensions, or concatenations 
+             so for these operators, we don't simplify *)
+          | `BVEXTRACT (i, j) -> BV (Term.bitvector_of_term (Term.construct fterm))
 
-          | `BVSIGNEXT i ->
-            (match args with
-              | [] -> assert false
-              | [BV b] -> BV (Term.mk_bv (Bitvector.bvsignext
-                                            (Numeral.to_int i)
-                                            (Term.bitvector_of_term b)))
-              | [UBV b] -> UBV (Term.mk_ubv (Bitvector.bvsignext
-                                              (Numeral.to_int i)
-                                              (Term.bitvector_of_term b)))
-              | _ -> assert false)
+          | `BVSIGNEXT i -> BV (Term.bitvector_of_term (Term.construct fterm))
 
-          | `BVCONCAT -> 
-            (match args with
-              | [] -> assert false
-              | [a] -> a
-              | [BV a; BV b] -> BV (Term.mk_bv (Bitvector.bvconcat 
-                                                  (Term.bitvector_of_term a) 
-                                                  (Term.bitvector_of_term b)))
-              | [UBV a; UBV b] -> UBV (Term.mk_ubv (Bitvector.bvconcat
-                                                      (Term.bitvector_of_term a)
-                                                      (Term.bitvector_of_term b)))
-              | _ -> assert false)
+          | `BVCONCAT -> BV (Term.bitvector_of_term (Term.construct fterm))
 
           (* Constant symbols *)
           | `TRUE
