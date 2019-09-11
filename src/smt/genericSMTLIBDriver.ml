@@ -807,53 +807,49 @@ let const_of_smtlib_atom b t =
               (* Return bitvector of string *)
               Term.mk_bv (Bitvector.bitvector_of_hstring t)
             with Invalid_argument _ -> 
-              try 
-                (* Return unsigned bitvector of string *)
-                Term.mk_ubv (Bitvector.bitvector_of_hstring t)
-              with Invalid_argument _ ->
-                try
-                  (* Return symbol of string *)
-                  Term.mk_bool (bool_of_hstring t)
-                (* String is not an interpreted symbol *)
-                with Invalid_argument _ -> 
+              try
+                (* Return symbol of string *)
+                Term.mk_bool (bool_of_hstring t)
+              (* String is not an interpreted symbol *)
+              with Invalid_argument _ -> 
+                try 
+                  (* Return bound symbol *)
+                  Term.mk_var (List.assq t b)
+                (* String is not a bound variable *)
+                with Not_found -> 
                   try 
-                    (* Return bound symbol *)
-                    Term.mk_var (List.assq t b)
-                  (* String is not a bound variable *)
+                    (* Name of state variable *)
+                    let state_var_name = HString.string_of_hstring t in
+
+                    (* State variable of name and given scope *)
+                    let state_var = 
+                      StateVar.state_var_of_long_string state_var_name in
+
+                    (* State variable at instant zero *)
+                    let var = 
+                      Var.mk_state_var_instance state_var Numeral.zero in
+
+                    (* Return term *)
+                    Term.mk_var var
+
+                  (* String is not a state variable *)
                   with Not_found -> 
-                    try 
-                      (* Name of state variable *)
-                      let state_var_name = HString.string_of_hstring t in
 
-                      (* State variable of name and given scope *)
-                      let state_var = 
-                        StateVar.state_var_of_long_string state_var_name in
+                  try 
 
-                      (* State variable at instant zero *)
-                      let var = 
-                        Var.mk_state_var_instance state_var Numeral.zero in
+                    (* Return uninterpreted constant *)
+                    Term.mk_uf 
+                      (UfSymbol.uf_symbol_of_string
+                        (HString.string_of_hstring t))
+                      []
+                  with Not_found -> 
+                  Debug.smtexpr
+                      "const_of_smtlib_token %s failed" 
+                      (HString.string_of_hstring t);
 
-                      (* Return term *)
-                      Term.mk_var var
-
-                    (* String is not a state variable *)
-                    with Not_found -> 
-
-                    try 
-
-                      (* Return uninterpreted constant *)
-                      Term.mk_uf 
-                        (UfSymbol.uf_symbol_of_string
-                          (HString.string_of_hstring t))
-                        []
-                    with Not_found -> 
-                    Debug.smtexpr
-                        "const_of_smtlib_token %s failed" 
-                        (HString.string_of_hstring t);
-
-                    (* Cannot convert to an expression *)
-                    (* raise Not_found *)
-                    failwith "Invalid constant symbol in S-expression"
+                  (* Cannot convert to an expression *)
+                  (* raise Not_found *)
+                  failwith "Invalid constant symbol in S-expression"
   in
 
   Debug.smtexpr 
