@@ -34,3 +34,4 @@ true: use_menhir, explain
 <kind2.docdir/index.html>: with_intro(doc/doc_intro.txt)
 
 <terms/bitvector.ml>: package(stdint)
+<terms/bitvector.mli>: package(stdint)
