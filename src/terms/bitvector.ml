@@ -646,10 +646,10 @@ let bitvector_of_string_d (s : string) : t  =
    beginning with "0x" to a constant bitvector *)
 let bitvector_of_string_x (s : string) (size : int) : t =
   match size with
-  | 8 -> MUint8 (Stdint.Uint8.of_string s)
-  | 16 -> MUint16 (Stdint.Uint16.of_string s)
-  | 32 -> MUint32 (Stdint.Uint32.of_string s)
-  | 64 -> MUint64 (Stdint.Uint64.of_string s)
+  | 2 -> MUint8 (Stdint.Uint8.of_string s)
+  | 4 -> MUint16 (Stdint.Uint16.of_string s)
+  | 8 -> MUint32 (Stdint.Uint32.of_string s)
+  | 16 -> MUint64 (Stdint.Uint64.of_string s)
   | _ -> raise NonStandardBVSize
 
 (* Convert a string to a constant bitvector *)
