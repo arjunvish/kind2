@@ -18,9 +18,9 @@ true: -traverse, annot, bin_annot, color(always)
 <doc>: include
 
 # Use Unix, Str, ZMQ and Thread modules  
-<**/*.native>: package(num),package(unix),package(str),use_ZMQ,thread,package(integers)
-<**/*.byte>: package(num),package(unix),package(str),use_ZMQ,thread,package(integers)
-<**/*.top>: debug,package(num),package(unix),package(str),thread,package(integers)
+<**/*.native>: package(num),package(unix),package(str),use_ZMQ,thread,package(stdint)
+<**/*.byte>: package(num),package(unix),package(str),use_ZMQ,thread,package(stdint)
+<**/*.top>: debug,package(num),package(unix),package(str),thread,package(stdint)
 
 # Source files that use the Thread and ZMQ modules
 <messaging.ml>: thread,use_ZMQ
