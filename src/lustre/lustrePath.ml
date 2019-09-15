@@ -686,7 +686,7 @@ let rec pp_print_term ty ppf term =
       Format.fprintf ppf "false"
 
   (* Constant is a bitvector? *)
-  else if Type.is_bitvector (Term.type_of_term term) then
+  else if ((Type.is_bitvector (Term.type_of_term term)) || (Type.is_ubitvector (Term.type_of_term term))) then
 
     (* Pretty-print a bitvector value *)
     Bitvector.pp_print_bitvector ppf (Term.bitvector_of_term term)

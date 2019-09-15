@@ -219,6 +219,10 @@ let pp_print_value ?as_type ppf v = match v, as_type with
     let bv = Term.bitvector_of_term t in
       Bitvector.pp_print_bitvector ppf bv
 
+  | Term t, Some ty when Type.is_ubitvector ty -> 
+    let bv = Term.bitvector_of_term t in
+      Bitvector.pp_print_bitvector ppf bv
+
   | Term t, _ -> (*Type.pp_print_type2 ppf (Term.type_of_term t);*)pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l
   | Map m, _ -> Format.fprintf ppf "@[<hov 0>%a@]" pp_print_map_as_array m
@@ -229,9 +233,9 @@ let pp_print_value_xml ?as_type ppf v =  match v, as_type with
     Term.numeral_of_term t
     |> Type.get_constr_of_num
     |> Format.pp_print_string ppf
-  | Term t, Some ty when Type.is_bitvector ty -> 
+  (*| Term t, Some ty when Type.is_bitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      Bitvector.pp_print_bitvector ppf bv
+      Bitvector.pp_print_bitvector ppf bv*)
 
   | Term t, _ -> pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l
