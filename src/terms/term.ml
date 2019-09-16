@@ -285,13 +285,13 @@ let rec numeral_of_term t = match destruct t with
    it doesn't differentiate between signed 
    and unsigned BVs. type.ml is to be used to 
    do that. *)
-let bitvector_of_term t = match destruct t with
+(*let bitvector_of_term t = match destruct t with
 
   (* Term is a bitvector constant *)
   | T.Const s when Symbol.is_bitvector s -> 
       Symbol.bitvector_of_symbol s
 
-  | _ -> invalid_arg "bitvector_of_term"
+  | _ -> invalid_arg "bitvector_of_term"*)
 
 (* Return decimal constant of a term *)
 let rec decimal_of_term t = 
@@ -488,6 +488,15 @@ let print_lambda t = pp_print_lambda Format.std_formatter t
 (* Return a string representation of a term *)
 let string_of_lambda t = string_of_t pp_print_lambda t
 
+let bitvector_of_term t = match destruct t with
+
+  (* Term is a bitvector constant *)
+  | T.Const s when Symbol.is_bitvector s -> 
+      Symbol.bitvector_of_symbol s
+
+  |T.App (s, a) -> Format.printf "App case, Term = %s\n" (string_of_term t); invalid_arg "bitvector_of_term"
+
+  | _ -> Format.printf "Term = %s\n" (string_of_term t); invalid_arg "bitvector_of_term"
 
 (* ********************************************************************* *)
 (* Folding and utility functions on terms                                *)

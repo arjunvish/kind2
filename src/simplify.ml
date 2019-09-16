@@ -1323,7 +1323,7 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
       )
 
     (* Normal form of a function application depends on its symbol *)
-    | Term.T.App (s, _) -> 
+    | Term.T.App (s, l) -> 
 
       (
         
@@ -2279,7 +2279,14 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
 
           (* Our bitvector library can't do extracts, sign extensions, or concatenations 
              so for these operators, we don't simplify *)
-          | `BVEXTRACT (i, j) -> BV (Term.bitvector_of_term (Term.construct fterm))
+          | `BVEXTRACT (i, j) -> 
+            let s = List.map (Term.string_of_term) l in
+            let str = String.concat "DAMN " s in
+            Format.printf "i = %s, j = %s, l = %s\n" 
+                (Numeral.string_of_numeral i) 
+                (Numeral.string_of_numeral j)
+                str;
+              BV (Term.bitvector_of_term (Term.construct fterm))
 
           | `BVSIGNEXT i -> BV (Term.bitvector_of_term (Term.construct fterm))
 
