@@ -130,6 +130,12 @@ val to_int32 : t -> t
 (** intN -> int64 *)
 val to_int64 : t -> t
 
+(** uintN -> intN *)
+val to_signed_int : t -> t
+
+(** intN -> uintN *)
+val to_unsigned_int : t -> t
+
 
 (** {Shift Operators} *)
 (** Shift left *)

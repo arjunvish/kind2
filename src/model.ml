@@ -217,7 +217,7 @@ let pp_print_value ?as_type ppf v = match v, as_type with
   )
   | Term t, Some ty when Type.is_bitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      Bitvector.pp_print_bitvector ppf bv
+      Bitvector.pp_print_bitvector ppf (Bitvector.to_signed_int bv)
 
   | Term t, Some ty when Type.is_ubitvector ty -> 
     let bv = Term.bitvector_of_term t in

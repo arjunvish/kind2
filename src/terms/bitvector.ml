@@ -350,6 +350,23 @@ let to_int64 (x : t) : t =
   | MInt64 i -> MInt64 i
   | _ -> raise NonStandardBVSize
 
+(* uintN -> intN *)
+let to_signed_int (x : t) : t = 
+  match x with
+  | MUint8 i -> MInt8 (Stdint.Int8.of_uint8 i)
+  | MUint16 i -> MInt16 (Stdint.Int16.of_uint16 i)
+  | MUint32 i -> MInt32 (Stdint.Int32.of_uint32 i)
+  | MUint64 i -> MInt64 (Stdint.Int64.of_uint64 i)
+  | MInt8 _ | MInt16 _ | MInt32 _ | MInt64 _ -> x
+
+(* intN -> uintN *)
+let to_unsigned_int (x : t) : t = 
+  match x with
+  | MInt8 i -> MUint8 (Stdint.Uint8.of_int8 i)
+  | MInt16 i -> MUint16 (Stdint.Uint16.of_int16 i)
+  | MInt32 i -> MUint32 (Stdint.Uint32.of_int32 i)
+  | MInt64 i -> MUint64 (Stdint.Uint64.of_int64 i)
+  | MUint8 _ | MUint16 _ | MUint32 _ | MUint64 _ -> x
 (*  
 (* Binary bitvector -> machine integer *)
 
@@ -600,7 +617,20 @@ let pp_smtlib_print_bitvector ppf b =
   | MInt64 i -> fprintf ppf "(_ bv%s 64)" (Stdint.Uint64.to_string (Stdint.Uint64.of_int64 i))
 
 (* Pretty-print a bitvector as a numeral *)
-(*let pp_print_bitvector ppf b =
+let pp_print_bitvector ppf b =
+  match b with
+  | MUint8 i -> pp_print_string ppf (Stdint.Uint8.to_string i)
+  | MUint16 i -> pp_print_string ppf (Stdint.Uint16.to_string i)
+  | MUint32 i -> pp_print_string ppf (Stdint.Uint32.to_string i)
+  | MUint64 i -> pp_print_string ppf (Stdint.Uint64.to_string i)
+  | MInt8 i -> pp_print_string ppf (Stdint.Int8.to_string i)
+  | MInt16 i -> pp_print_string ppf (Stdint.Int16.to_string i)
+  | MInt32 i -> pp_print_string ppf (Stdint.Int32.to_string i)
+  | MInt64 i -> pp_print_string ppf (Stdint.Int64.to_string i)
+
+(* The library printer prints a Uhh or hh suffix to the 
+literals that we dont want
+let pp_print_bitvector ppf b =
   match b with
   | MUint8 i -> Stdint.Uint8.printer ppf i
   | MUint16 i -> Stdint.Uint16.printer ppf i
@@ -610,27 +640,18 @@ let pp_smtlib_print_bitvector ppf b =
   | MInt16 i -> Stdint.Int16.printer ppf i
   | MInt32 i -> Stdint.Int32.printer ppf i
   | MInt64 i -> Stdint.Int64.printer ppf i*)
-  (*let pp_print_bitvector ppf b =
-    match b with
-    | MUint8 i -> pp_print_string ppf (Stdint.Uint8.to_string i)
-    | MUint16 i -> pp_print_string ppf (Stdint.Uint16.to_string i)
-    | MUint32 i -> pp_print_string ppf (Stdint.Uint32.to_string i)
-    | MUint64 i -> pp_print_string ppf (Stdint.Uint64.to_string i)
-    | MInt8 i -> pp_print_string ppf (Stdint.Int8.to_string i)
-    | MInt16 i -> pp_print_string ppf (Stdint.Int16.to_string i)
-    | MInt32 i -> pp_print_string ppf (Stdint.Int32.to_string i)
-    | MInt64 i -> pp_print_string ppf (Stdint.Int64.to_string i)*)
-
-  let pp_print_bitvector ppf b =
-    match b with
-    | MUint8 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint8.to_string i)])
-    | MUint16 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint16.to_string i)])
-    | MUint32 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint32.to_string i)])
-    | MUint64 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint64.to_string i)])
-    | MInt8 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int8.to_string i)])
-    | MInt16 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int16.to_string i)])
-    | MInt32 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int32.to_string i)])
-    | MInt64 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int64.to_string i)])
+(* For debugging whether we have signed or unsigned BVs 
+let pp_print_bitvector_debug ppf b =
+  match b with
+  | MUint8 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint8.to_string i)])
+  | MUint16 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint16.to_string i)])
+  | MUint32 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint32.to_string i)])
+  | MUint64 i -> pp_print_string ppf (String.concat "" ["unsigned";(Stdint.Uint64.to_string i)])
+  | MInt8 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int8.to_string i)])
+  | MInt16 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int16.to_string i)])
+  | MInt32 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int32.to_string i)])
+  | MInt64 i -> pp_print_string ppf (String.concat "" ["signed";(Stdint.Int64.to_string i)])*)
+  
       
 (* ********************************************************************** *)
 (* Conversions                                                            *)
