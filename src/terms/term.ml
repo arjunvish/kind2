@@ -494,7 +494,7 @@ let bitvector_of_term t = match destruct t with
   | T.Const s when Symbol.is_bitvector s -> 
       Symbol.bitvector_of_symbol s
 
-  |T.App (s, a) -> Format.printf "App case, Term = %s\n" (string_of_term t); invalid_arg "bitvector_of_term"
+  | T.App (s, a) -> Format.printf "App case, Term = %s\n" (string_of_term t); invalid_arg "bitvector_of_term"
 
   | _ -> Format.printf "Term = %s\n" (string_of_term t); invalid_arg "bitvector_of_term"
 
