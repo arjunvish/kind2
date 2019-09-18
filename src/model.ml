@@ -220,7 +220,7 @@ let pp_print_value ?as_type ppf v = match v, as_type with
       Bitvector.pp_print_bitvector ppf (Bitvector.to_signed_int bv)
 
   | Term t, Some ty when Type.is_ubitvector ty -> 
-    Format.printf "In model.\n";let bv = Term.bitvector_of_term t in
+    let bv = Term.bitvector_of_term t in
       Bitvector.pp_print_bitvector ppf bv
 
   | Term t, _ -> (*Type.pp_print_type2 ppf (Term.type_of_term t);*)pp_print_term ppf t

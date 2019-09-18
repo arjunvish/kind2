@@ -2343,7 +2343,7 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
 
           (* Our bitvector library can't do extracts, sign extensions, or concatenations 
              so for these operators, we don't simplify *)
-          | `BVEXTRACT (i, j) -> BV (Term.construct fterm)
+          | `BVEXTRACT (i, j) -> BV (Term.construct fterm)       
 
           | `BVSIGNEXT i -> BV (Term.construct fterm)
 
