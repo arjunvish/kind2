@@ -277,6 +277,18 @@ val mk_to_int64 : t -> t
 (** Create a bitvector to nat conversion *)
 val mk_bv2nat : t -> t
 
+(** Create a signed machine integer to signed machine integer cast *)
+val mk_bv_promote : int -> int -> t -> t
+
+(** Create an unsigned machine integer to unsigned machine integer cast *)
+val mk_ubv_promote : int -> int -> t -> t
+
+(** Create a signed machine integer to signed machine integer cast *)
+val mk_bv_demote : int -> int -> t -> t
+
+(** Create an unsigned machine integer to unsigned machine integer cast *)
+val mk_ubv_demote : int -> int -> t -> t
+(*
 (** Create a BV extraction *)
 val mk_bvextract : Numeral.t -> Numeral.t -> t -> t
 
@@ -285,6 +297,7 @@ val mk_bvconcat : t -> t -> t
 
 (** Create a BV sign extension *)
 val mk_bvsignext : Numeral.t -> t -> t
+*)
 
 (** Create a predicate for coincidence of a real with an integer *)
 val mk_is_int : t -> t

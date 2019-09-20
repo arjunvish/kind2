@@ -579,9 +579,13 @@ let to_presburger (v: Var.t list) (gf: Term.t) : cformula =
                | `BVSLE, _
                | `BVSGT, _
                | `BVSGE, _ 
-               | `BVEXTRACT _, _
+               | `BV_PROMOTE _, _
+               | `UBV_PROMOTE _, _
+               | `BV_DEMOTE _, _
+               | `UBV_DEMOTE _, _
+               (*| `BVEXTRACT _, _
                | `BVCONCAT, _
-               | `BVSIGNEXT _, _
+               | `BVSIGNEXT _, _*)
                -> raise Not_in_LIA
 
              )

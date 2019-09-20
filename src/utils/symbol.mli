@@ -77,9 +77,13 @@
     {- [`BVSLE] signed binary: arithmetic comparision less than or equal to}
     {- [`BVSGT] signed binary: arithmetic comparision greater than}
     {- [`BVSGE] signed binary: arithmetic comparision greater than or equal to}
-    {- [`BVEXTRACT (i, j)] unary: extract subsequence from bitvector}
+    {- [`BV_PROMOTE i j] unary: convert signed machine integer of size i to j, i < j}
+    {- [`UBV_PROMOTE i j] unary: convert unsigned machine integer of size i to j, i < j}
+    {- [`BV_DEMOTE i j] unary: convert signed machine integer of size i to j, i > j}
+    {- [`UBV_DEMOTE i j] unary: convert unsigned machine integer of size i to j, i > j}
+  (*  {- [`BVEXTRACT (i, j)] unary: extract subsequence from bitvector}
     {- [`BVCONCAT] binary: concatenation of bitvectors}
-    {- [`BVSIGNEXT i] unary: sign extension of bitvectors}
+    {- [`BVSIGNEXT i] unary: sign extension of bitvectors}*)
     {- [`SELECT] binary: selection from array}
     {- [`STORE] ternary: update of an array}
     }
@@ -166,19 +170,23 @@ type interpreted_symbol =
   | `BVSHL                (** Logical shift left (binary) *)
   | `BVLSHR               (** Logical shift right (binary) *)
   | `BVASHR               (** Arithmetic shift right (binary) *)
-  | `BVULT                (* Arithmetic comparision less than (binary) *)
-  | `BVULE                (* Arithmetic comparision less than or equal to (binary) *)
-  | `BVUGT                (* Arithmetic comparision greater than (binary) *)
-  | `BVUGE                (* Arithmetic comparision greater than or equal to (binary) *)
-  | `BVSLT                (* Arithmetic comparision less than (signed binary) *)
-  | `BVSLE                (* Arithmetic comparision less than or equal to (signed binary) *)
-  | `BVSGT                (* Arithmetic comparision greater than (signed binary) *)
-  | `BVSGE                (* Arithmetic comparision greater than or equal to (signed binary) *)
-  | `BVEXTRACT of Numeral.t * Numeral.t 
+  | `BVULT                (** Arithmetic comparision less than (binary) *)
+  | `BVULE                (** Arithmetic comparision less than or equal to (binary) *)
+  | `BVUGT                (** Arithmetic comparision greater than (binary) *)
+  | `BVUGE                (** Arithmetic comparision greater than or equal to (binary) *)
+  | `BVSLT                (** Arithmetic comparision less than (signed binary) *)
+  | `BVSLE                (** Arithmetic comparision less than or equal to (signed binary) *)
+  | `BVSGT                (** Arithmetic comparision greater than (signed binary) *)
+  | `BVSGE                (** Arithmetic comparision greater than or equal to (signed binary) *)
+  | `BV_PROMOTE of int * int  (** Conversion of signed machine integer of size i to j, i < j *)
+  | `UBV_PROMOTE of int * int  (** Conversion of unsigned machine integer of size i to j, i < j *)
+  | `BV_DEMOTE of int * int  (** Conversion of signed machine integer of size i to j, i > j *)
+  | `UBV_DEMOTE of int * int  (** Conversion of unsigned machine integer of size i to j, i > j *)
+  (*| `BVEXTRACT of Numeral.t * Numeral.t 
                           (** Extract subsequence from bitvector (unary) *)
   | `BVCONCAT             (** Concatenation of bitvectors (binary) *)
   | `BVSIGNEXT of Numeral.t
-                          (** Sign extension of bitvector (unary) *)                        
+                          (** Sign extension of bitvector (unary) *)*)
 
 
   (** Selection from array (binary) *)

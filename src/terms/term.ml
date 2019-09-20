@@ -625,9 +625,14 @@ let rec type_of_term t = match T.destruct t with
            | a :: _ -> Type.elem_type_of_array (type_of_term a)
            | _ -> assert false)
 
+        (* Casting from one machine integer type to another *)
+        | `BV_PROMOTE (i, j) -> Type.BV j
+        | `UBV_PROMOTE (i, j) -> Type.UBV j
+        | `BV_DEMOTE (i, j) -> Type.BV j
+        | `UBV_DEMOTE (i, j) -> Type.UBV j
 
         (* Bitvector-valued function *)
-        | `BVEXTRACT (i, j) -> 
+        (*| `BVEXTRACT (i, j) -> 
           
           (match l with
 
@@ -674,7 +679,7 @@ let rec type_of_term t = match T.destruct t with
                 | Type.UBV j -> Type.mk_ubv ((Numeral.to_int i) + j)
                 | _ -> assert false)
                 
-            | _ -> assert false)
+            | _ -> assert false)*)
       
         (* Return type of first argument *)
         | `MINUS
@@ -1386,6 +1391,19 @@ let mk_to_int64 t = mk_app_of_symbol_node `TO_INT64 [t]
 (* Hashcons a unary bitvector to nat conversion *)
 let mk_bv2nat t = mk_app_of_symbol_node `BV2NAT [t]
 
+(* Hashcons a unary signed machine integer to signed machine integer cast *)
+let mk_bv_promote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+
+(* Hashcons a unary unsigned machine integer to unsigned machine integer cast *)
+let mk_ubv_promote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+
+(* Hashcons a unary signed machine integer to signed machine integer cast *)
+let mk_bv_demote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+
+(* Hashcons a unary unsigned machine integer to unsigned machine integer cast *)
+let mk_ubv_demote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+
+(*
 (* Hashcons a BV extraction *)
 let mk_bvextract i j t = mk_app_of_symbol_node (`BVEXTRACT (i, j)) [t]
 
@@ -1394,7 +1412,7 @@ let mk_bvconcat a b = mk_app_of_symbol_node `BVCONCAT [a;b]
 
 (* Hashcons a BV sign extension *)
 let mk_bvsignext i t = mk_app_of_symbol_node (`BVSIGNEXT i) [t]
-
+*)
 (* Hashcons a predicate for coincidence of a real with an integer *)
 let mk_is_int t = mk_app_of_symbol_node `IS_INT [t]
 

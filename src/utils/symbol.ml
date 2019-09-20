@@ -102,11 +102,19 @@ type interpreted_symbol =
   | `BVSLE                (* Arithmetic comparision less than or equal to (signed binary) *)
   | `BVSGT                (* Arithmetic comparision greater than (signed binary) *)
   | `BVSGE                (* Arithmetic comparision greater than or equal to (signed binary) *)
-  | `BVEXTRACT of Numeral.t * Numeral.t 
+  | `BV_PROMOTE of int * int
+                          (* Cast a signed int of smaller to larger type *)
+  | `UBV_PROMOTE of int * int
+                          (* Cast an unsigned int of smaller to larger type *)
+  | `BV_DEMOTE of int * int
+                          (* Cast a signed int of larger to smaller type *)
+  | `UBV_DEMOTE of int * int
+                          (* Cast an unsigned int of larger to smaller type *)
+(*  | `BVEXTRACT of Numeral.t * Numeral.t 
                           (* Extract subsequence from bitvector (unary) *)
   | `BVCONCAT             (* Concatenation of bitvectors (binary) *)
   | `BVSIGNEXT of Numeral.t
-                          (* Sign extension of bitvector (unary) *)
+                          (* Sign extension of bitvector (unary) *)*)
 
   (* Selection from array (binary) *)
   | `SELECT of Type.t
@@ -216,8 +224,13 @@ module Symbol_node = struct
 
     | `STORE, `STORE -> true
 
-    | `BVEXTRACT (i1, j1), `BVEXTRACT (i2, j2) -> Numeral.equal i1 i2 && Numeral.equal j1 j2
+    (*| `BVEXTRACT (i1, j1), `BVEXTRACT (i2, j2) -> Numeral.equal i1 i2 && Numeral.equal j1 j2
     | `BVSIGNEXT i1, `BVSIGNEXT i2 -> Numeral.equal i1 i2
+    | `BVCONCAT, `BVCONCAT*)
+    | `BV_PROMOTE (i1, j1), `BV_PROMOTE (i2, j2) -> i1 = i2 && j1 = j2
+    | `UBV_PROMOTE (i1, j1), `UBV_PROMOTE (i2, j2) -> i1 = i2 && j1 = j2
+    | `BV_DEMOTE (i1, j1), `BV_DEMOTE (i2, j2) -> i1 = i2 && j1 = j2
+    | `UBV_DEMOTE (i1, j1), `UBV_DEMOTE (i2, j2) -> i1 = i2 && j1 = j2
     | `BVNOT, `BVNOT 
     | `BVNEG, `BVNEG
     | `BVAND, `BVAND
@@ -239,8 +252,7 @@ module Symbol_node = struct
     | `BVSLT, `BVSLT
     | `BVSLE, `BVSLE
     | `BVSGT, `BVSGT
-    | `BVSGE, `BVSGE
-    | `BVCONCAT, `BVCONCAT
+    | `BVSGE, `BVSGE -> true
 
     | `TRUE, _
     | `FALSE, _
@@ -277,9 +289,13 @@ module Symbol_node = struct
     | `IS_INT, _
     | `SELECT _, _
     | `STORE, _ 
-    | `BVEXTRACT _, _
+    | `BV_PROMOTE _, _
+    | `UBV_PROMOTE _, _
+    | `BV_DEMOTE _, _
+    | `UBV_DEMOTE _, _
+    (*| `BVEXTRACT _, _
     | `BVCONCAT, _
-    | `BVSIGNEXT _, _
+    | `BVSIGNEXT _, _*)
 
     | `BVNOT, _ 
     | `BVNEG, _
@@ -464,7 +480,67 @@ let rec pp_print_symbol_node ppf = function
   | `BVSGT -> Format.pp_print_string ppf "bvsgt"
   | `BVSGE -> Format.pp_print_string ppf "bvsge"
   | `BVCONCAT -> Format.pp_print_string ppf "concat"
-  | `BVEXTRACT (i, j) -> 
+  | `UBV_PROMOTE (i, j) ->
+      let str = (match i with
+        | 8 ->
+          (match j with
+          | 16 -> "concat (_ bv0 8)"
+          | 32 -> "concat (_ bv0 24)"
+          | 64 -> "concat (_ bv0 56)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match j with
+          | 32 -> "concat (_ bv0 16)"
+          | 64 -> "concat (_ bv0 48)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match j with
+          | 64 -> "concat (_ bv0 32)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.printf 
+      ppf
+      "%s" str
+  | `BV_PROMOTE (i, j) ->
+      let str = (match i with
+        | 8 ->
+          (match j with
+          | 16 -> "(_ sign_extend 8)"
+          | 32 -> "(_ sign_extend 24)"
+          | 64 -> "(_ sign_extend 56)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match j with
+          | 32 -> "(_ sign_extend 16)"
+          | 64 -> "(_ sign_extend 48)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match j with
+          | 64 -> "(_ sign_extend 32)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.printf 
+      ppf
+      "%s" str
+  | `UBV_DEMOTE (i, j) | `BV_DEMOTE (i, j) ->
+      let str = (match j with
+        | 8 ->
+          (match i with
+          | 16 | 32 | 64 -> "(_ extract 7 0)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match i with
+          | 32 | -> "(_ extract 31 0)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match i with
+          | 64 -> "(_ extract 63 0)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.printf 
+      ppf
+      "%s" str
+(*  | `BVEXTRACT (i, j) -> 
       Format.fprintf 
       ppf 
       "(_ extract %a %a)" 
@@ -474,7 +550,7 @@ let rec pp_print_symbol_node ppf = function
       Format.fprintf
       ppf
       "(_ sign_extend %a)"
-      Numeral.pp_print_numeral i
+      Numeral.pp_print_numeral i*)
 
   | `SELECT _ -> Format.pp_print_string ppf "select"
   | `STORE -> Format.pp_print_string ppf "store"

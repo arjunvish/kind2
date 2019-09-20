@@ -537,9 +537,13 @@ let ensure_symbol_qf_lira s =
   | `BVSLE
   | `BVSGT
   | `BVSGE
-  | `BVEXTRACT _
+  | `BV_PROMOTE _
+  | `UBV_PROMOTE _
+  | `BV_DEMOTE _
+  | `UBV_DEMOTE _
+  (*| `BVEXTRACT _
   | `BVCONCAT
-  | `BVSIGNEXT _
+  | `BVSIGNEXT _*)
   | `SELECT _
   | `STORE ->
     

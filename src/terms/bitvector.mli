@@ -26,6 +26,8 @@
 (** Bitvector type *)
 type t
 
+exception NonStandardBVSize
+
 
 (** {Numeral to Unsigned Bitvector} *)
 

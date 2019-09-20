@@ -693,7 +693,61 @@ let rec pp_print_symbol_node ?arity ppf = function
   | `BVSLE -> Format.pp_print_string ppf "bvsle"
   | `BVSGT -> Format.pp_print_string ppf "bvsgt"
   | `BVSGE -> Format.pp_print_string ppf "bvsge"
-  | `BVCONCAT -> Format.pp_print_string ppf "concat"
+  | `UBV_PROMOTE (i, j) ->
+      let str = (match i with
+        | 8 ->
+          (match j with
+          | 16 -> "concat (_ bv0 8)"
+          | 32 -> "concat (_ bv0 24)"
+          | 64 -> "concat (_ bv0 56)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match j with
+          | 32 -> "concat (_ bv0 16)"
+          | 64 -> "concat (_ bv0 48)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match j with
+          | 64 -> "concat (_ bv0 32)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.pp_print_string ppf str
+  | `BV_PROMOTE (i, j) ->
+      let str = (match i with
+        | 8 ->
+          (match j with
+          | 16 -> "(_ sign_extend 8)"
+          | 32 -> "(_ sign_extend 24)"
+          | 64 -> "(_ sign_extend 56)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match j with
+          | 32 -> "(_ sign_extend 16)"
+          | 64 -> "(_ sign_extend 48)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match j with
+          | 64 -> "(_ sign_extend 32)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.pp_print_string ppf str
+  | `UBV_DEMOTE (i, j) | `BV_DEMOTE (i, j) ->
+      let str = (match j with
+        | 8 ->
+          (match i with
+          | 16 | 32 | 64 -> "(_ extract 7 0)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match i with
+          | 32 | -> "(_ extract 31 0)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match i with
+          | 64 -> "(_ extract 63 0)"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.pp_print_string ppf str
+  (*| `BVCONCAT -> Format.pp_print_string ppf "concat"
   | `BVEXTRACT (i, j) -> 
       Format.fprintf 
         ppf 
@@ -704,7 +758,7 @@ let rec pp_print_symbol_node ?arity ppf = function
       Format.fprintf
         ppf
         "(_ sign_extend %a)"
-        Numeral.pp_print_numeral i
+        Numeral.pp_print_numeral i*)
   | `SELECT ty_array ->
 
     if Flags.Arrays.smt () then

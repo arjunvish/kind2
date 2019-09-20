@@ -316,14 +316,14 @@ let string_of_symbol = function
   | `GT -> ">"
   | `TO_REAL -> "real"
   | `TO_INT -> "int"
-  | `TO_UINT8 -> "(_ int2bv 8)"
-  | `TO_UINT16 -> "(_ int2bv 16)"
-  | `TO_UINT32 -> "(_ int2bv 32)"
-  | `TO_UINT64 -> "(_ int2bv 64)"
-  | `TO_INT8 -> "(_ int2bv 8)"
-  | `TO_INT16 -> "(_ int2bv 16)"
-  | `TO_INT32 -> "(_ int2bv 32)"
-  | `TO_INT64 -> "(_ int2bv 64)"
+  | `TO_UINT8 -> "uint8"
+  | `TO_UINT16 -> "uint16"
+  | `TO_UINT32 -> "uint32"
+  | `TO_UINT64 -> "uint64"
+  | `TO_INT8 -> "int8"
+  | `TO_INT16 -> "int16"
+  | `TO_INT32 -> "int32"
+  | `TO_INT64 -> "int64"
   | `BVAND -> "&&"
   | `BVOR -> "||"
   | `BVNOT -> "!"
@@ -346,9 +346,45 @@ let string_of_symbol = function
   | `BVSHL -> "lshift"
   | `BVLSHR -> "rshift"
   | `BVASHR -> "arshift"
-  | `BVEXTRACT (i,j) -> "(_ extract " ^ (Numeral.string_of_numeral i) ^ " " ^ (Numeral.string_of_numeral j) ^ ")"
+  | `BV_PROMOTE (i,j) -> 
+      match i,j with
+      | 8, 16 -> "int16"
+      | 8, 32 -> "int32"
+      | 8, 64 -> "int64"
+      | 16, 32 -> "int32"
+      | 16, 64 -> "int64"
+      | 32, 64 -> "int64"
+      | _ -> failwith "string_of_symbol"
+  | `UBV_PROMOTE (i,j) -> 
+      match i,j with
+      | 8, 16 -> "uint16"
+      | 8, 32 -> "uint32"
+      | 8, 64 -> "uint64"
+      | 16, 32 -> "uint32"
+      | 16, 64 -> "uint64"
+      | 32, 64 -> "uint64"
+      | _ -> failwith "string_of_symbol"
+  | `BV_DEMOTE (i,j) -> 
+      match j,i with
+      | 8, 16 -> "int8"
+      | 8, 32 -> "int8"
+      | 8, 64 -> "int8"
+      | 16, 32 -> "int16"
+      | 16, 64 -> "int16"
+      | 32, 64 -> "int32"
+      | _ -> failwith "string_of_symbol"
+  | `UBV_DEMOTE (i,j) -> 
+      match j,i with
+      | 8, 16 -> "uint8"
+      | 8, 32 -> "uint8"
+      | 8, 64 -> "uint8"
+      | 16, 32 -> "uint16"
+      | 16, 64 -> "uint16"
+      | 32, 64 -> "uint32"
+      | _ -> failwith "string_of_symbol"
+  (*| `BVEXTRACT (i,j) -> "(_ extract " ^ (Numeral.string_of_numeral i) ^ " " ^ (Numeral.string_of_numeral j) ^ ")"
   | `BVCONCAT -> "concat"
-  | `BVSIGNEXT i -> "(_ sign_extend " ^ (Numeral.string_of_numeral i) ^ ")" 
+  | `BVSIGNEXT i -> "(_ sign_extend " ^ (Numeral.string_of_numeral i) ^ ")" *)
   | _ -> failwith "string_of_symbol"
 
 
@@ -606,8 +642,12 @@ and pp_print_app ?as_type safe pvar ppf = function
   | `TO_INT16
   | `TO_INT32
   | `TO_INT64
-  | `BVEXTRACT _
-  | `BVSIGNEXT _
+  | `BV_PROMOTE _
+  | `UBV_PROMOTE _
+  | `BV_DEMOTE _
+  | `UBV_DEMOTE _
+  (*| `BVEXTRACT _
+  | `BVSIGNEXT _*)
   | `ABS as s -> 
 
     (function [a] -> 
@@ -760,7 +800,7 @@ and pp_print_app ?as_type safe pvar ppf = function
         
         
     (* Unsupported functions symbols *)
-    | `BVCONCAT
+    (*| `BVCONCAT*)
     | `DISTINCT
     | `IS_INT
     | `UF _ -> (function _ -> assert false)
@@ -1777,7 +1817,13 @@ let eval_to_uint8 expr =
   if (Type.is_uint8 tt) then
     expr
   else if (Type.is_ubitvector tt) then
-    Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr
+    if(Type.is_uint16 tt) then
+      Term.mk_ubv_demote (16, 8) expr
+    else if(Type.is_uint32 tt) then
+      Term.mk_ubv_demote (32, 8) expr
+    else if(Type.is_uint364 tt) then
+      Term.mk_ubv_demote (64, 8) expr
+    (*Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr*)
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.

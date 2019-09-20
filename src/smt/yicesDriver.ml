@@ -323,7 +323,63 @@ let rec pp_print_symbol_node ?arity ppf = function
   | `BVSLE -> Format.pp_print_string ppf "bv-sle"
   | `BVSGT -> Format.pp_print_string ppf "bv-sgt"
   | `BVSGE -> Format.pp_print_string ppf "bv-sge"
-  | `BVCONCAT -> Format.pp_print_string ppf "bv-concat"
+  | `UBV_PROMOTE (i, j) ->
+      let str = (match i with
+        | 8 ->
+          (match j with
+          | 16 -> "bv-concat 0b00000000"
+          | 32 -> "bv-concat 0b000000000000000000000000"
+          | 64 -> "bv-concat 0b00000000000000000000000000000000000000000000000000000000"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match j with
+          | 32 -> "bv-concat 0b0000000000000000"
+          | 64 -> "bv-concat 0b000000000000000000000000000000000000000000000000"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match j with
+          | 64 -> "bv-concat 0b00000000000000000000000000000000"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.pp_print_string ppf str
+  (* These aren't going to work since in Yices1, "bv-sign-extend bv n" 
+     sign extends bv by n bits *)
+  | `BV_PROMOTE (i, j) ->
+      let str = (match i with
+        | 8 ->
+          (match j with
+          | 16 -> "bv-sign-extend 8"
+          | 32 -> "bv-sign-extend 24"
+          | 64 -> "bv-sign-extend 56"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match j with
+          | 32 -> "bv-sign-extend 16"
+          | 64 -> "bv-sign-extend 48"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match j with
+          | 64 -> "bv-sign-extend 32"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.pp_print_string ppf str
+  | `UBV_DEMOTE (i, j) | `BV_DEMOTE (i, j) ->
+      let str = (match j with
+        | 8 ->
+          (match i with
+          | 16 | 32 | 64 -> "bv-extract 7 0"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 16 -> 
+          (match i with
+          | 32 | -> "bv-extract 31 0"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | 32 ->
+          (match i with
+          | 64 -> "bv-extract 63 0"
+          | _ -> raise Bitvector.NonStandardBVSize)
+        | _ -> raise Bitvector.NonStandardBVSize) in
+      Format.pp_print_string ppf str 
+  (*| `BVCONCAT -> Format.pp_print_string ppf "bv-concat"
   | `BVEXTRACT (i, j) -> 
       Format.fprintf 
         ppf 
@@ -334,7 +390,7 @@ let rec pp_print_symbol_node ?arity ppf = function
       Format.fprintf
         ppf
         "bv-sign-extend %a"
-        Numeral.pp_print_numeral i
+        Numeral.pp_print_numeral i*)
         
   | `SELECT _ -> Format.pp_print_string ppf ""
 
