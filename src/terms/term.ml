@@ -626,10 +626,10 @@ let rec type_of_term t = match T.destruct t with
            | _ -> assert false)
 
         (* Casting from one machine integer type to another *)
-        | `BV_PROMOTE (i, j) -> Type.BV j
-        | `UBV_PROMOTE (i, j) -> Type.UBV j
-        | `BV_DEMOTE (i, j) -> Type.BV j
-        | `UBV_DEMOTE (i, j) -> Type.UBV j
+        | `BV_PROMOTE (i, j) -> Type.mk_bv j
+        | `UBV_PROMOTE (i, j) -> Type.mk_ubv j
+        | `BV_DEMOTE (i, j) -> Type.mk_bv j
+        | `UBV_DEMOTE (i, j) -> Type.mk_ubv j
 
         (* Bitvector-valued function *)
         (*| `BVEXTRACT (i, j) -> 
@@ -1392,16 +1392,16 @@ let mk_to_int64 t = mk_app_of_symbol_node `TO_INT64 [t]
 let mk_bv2nat t = mk_app_of_symbol_node `BV2NAT [t]
 
 (* Hashcons a unary signed machine integer to signed machine integer cast *)
-let mk_bv_promote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_bv_promote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
 
 (* Hashcons a unary unsigned machine integer to unsigned machine integer cast *)
-let mk_ubv_promote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_ubv_promote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
 
 (* Hashcons a unary signed machine integer to signed machine integer cast *)
-let mk_bv_demote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_bv_demote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
 
 (* Hashcons a unary unsigned machine integer to unsigned machine integer cast *)
-let mk_ubv_demote i j t = mk_app_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_ubv_demote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
 
 (*
 (* Hashcons a BV extraction *)

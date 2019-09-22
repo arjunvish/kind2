@@ -498,9 +498,7 @@ let rec pp_print_symbol_node ppf = function
           | 64 -> "concat (_ bv0 32)"
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
-      Format.printf 
-      ppf
-      "%s" str
+      Format.pp_print_string ppf str
   | `BV_PROMOTE (i, j) ->
       let str = (match i with
         | 8 ->
@@ -519,9 +517,7 @@ let rec pp_print_symbol_node ppf = function
           | 64 -> "(_ sign_extend 32)"
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
-      Format.printf 
-      ppf
-      "%s" str
+      Format.pp_print_string ppf str
   | `UBV_DEMOTE (i, j) | `BV_DEMOTE (i, j) ->
       let str = (match j with
         | 8 ->
@@ -530,16 +526,14 @@ let rec pp_print_symbol_node ppf = function
           | _ -> raise Bitvector.NonStandardBVSize)
         | 16 -> 
           (match i with
-          | 32 | -> "(_ extract 31 0)"
+          | 32 | 64 -> "(_ extract 15 0)"
           | _ -> raise Bitvector.NonStandardBVSize)
         | 32 ->
           (match i with
-          | 64 -> "(_ extract 63 0)"
+          | 64 -> "(_ extract 31 0)"
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
-      Format.printf 
-      ppf
-      "%s" str
+      Format.pp_print_string ppf str
 (*  | `BVEXTRACT (i, j) -> 
       Format.fprintf 
       ppf 

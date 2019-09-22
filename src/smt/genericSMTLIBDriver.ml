@@ -739,11 +739,11 @@ let rec pp_print_symbol_node ?arity ppf = function
           | _ -> raise Bitvector.NonStandardBVSize)
         | 16 -> 
           (match i with
-          | 32 | -> "(_ extract 31 0)"
+          | 32 | 64 -> "(_ extract 15 0)"
           | _ -> raise Bitvector.NonStandardBVSize)
         | 32 ->
           (match i with
-          | 64 -> "(_ extract 63 0)"
+          | 64 -> "(_ extract 31 0)"
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
       Format.pp_print_string ppf str

@@ -347,41 +347,41 @@ let string_of_symbol = function
   | `BVLSHR -> "rshift"
   | `BVASHR -> "arshift"
   | `BV_PROMOTE (i,j) -> 
-      match i,j with
+      (match i,j with
       | 8, 16 -> "int16"
       | 8, 32 -> "int32"
       | 8, 64 -> "int64"
       | 16, 32 -> "int32"
       | 16, 64 -> "int64"
       | 32, 64 -> "int64"
-      | _ -> failwith "string_of_symbol"
+      | _ -> failwith "string_of_symbol")
   | `UBV_PROMOTE (i,j) -> 
-      match i,j with
+      (match i,j with
       | 8, 16 -> "uint16"
       | 8, 32 -> "uint32"
       | 8, 64 -> "uint64"
       | 16, 32 -> "uint32"
       | 16, 64 -> "uint64"
       | 32, 64 -> "uint64"
-      | _ -> failwith "string_of_symbol"
+      | _ -> failwith "string_of_symbol")
   | `BV_DEMOTE (i,j) -> 
-      match j,i with
+      (match j,i with
       | 8, 16 -> "int8"
       | 8, 32 -> "int8"
       | 8, 64 -> "int8"
       | 16, 32 -> "int16"
       | 16, 64 -> "int16"
       | 32, 64 -> "int32"
-      | _ -> failwith "string_of_symbol"
+      | _ -> failwith "string_of_symbol")
   | `UBV_DEMOTE (i,j) -> 
-      match j,i with
+      (match j,i with
       | 8, 16 -> "uint8"
       | 8, 32 -> "uint8"
       | 8, 64 -> "uint8"
       | 16, 32 -> "uint16"
       | 16, 64 -> "uint16"
       | 32, 64 -> "uint32"
-      | _ -> failwith "string_of_symbol"
+      | _ -> failwith "string_of_symbol")
   (*| `BVEXTRACT (i,j) -> "(_ extract " ^ (Numeral.string_of_numeral i) ^ " " ^ (Numeral.string_of_numeral j) ^ ")"
   | `BVCONCAT -> "concat"
   | `BVSIGNEXT i -> "(_ sign_extend " ^ (Numeral.string_of_numeral i) ^ ")" *)
@@ -1817,12 +1817,12 @@ let eval_to_uint8 expr =
   if (Type.is_uint8 tt) then
     expr
   else if (Type.is_ubitvector tt) then
-    if(Type.is_uint16 tt) then
-      Term.mk_ubv_demote (16, 8) expr
-    else if(Type.is_uint32 tt) then
-      Term.mk_ubv_demote (32, 8) expr
-    else if(Type.is_uint364 tt) then
-      Term.mk_ubv_demote (64, 8) expr
+    if (Type.is_uint16 tt) then
+      (Term.mk_ubv_demote 16 8 expr)
+    else if (Type.is_uint32 tt) then
+      (Term.mk_ubv_demote 32 8 expr)
+    else (*if (Type.is_uint64 tt) then*)
+      (Term.mk_ubv_demote 64 8 expr)
     (*Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr*)
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
@@ -1858,9 +1858,14 @@ let eval_to_uint16 expr =
     expr
   else if (Type.is_ubitvector tt) then
     if (Type.is_uint8 tt) then
-      Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 8)) expr
+      Term.mk_ubv_promote 8 16 expr
+      (*Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 8)) expr
     else 
-      Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr
+      Term.mk_extract (Numeral.of_int 15) (Numeral.of_int 0) expr*)
+    else if (Type.is_uint32 tt) then
+      Term.mk_ubv_demote 32 16 expr
+    else (*if (Type.is_uint64 tt) then*)
+      Term.mk_ubv_demote 64 16 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.
@@ -1899,13 +1904,18 @@ let eval_to_uint32 expr =
     expr
   else if (Type.is_ubitvector tt) then
     if (Type.is_uint8 tt) then
-      Term.mk_bvconcat 
+      (*Term.mk_bvconcat 
         (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 16)) (Term.mk_bv (Bitvector.zero 8))) 
         expr
     else if (Type.is_uint16 tt) then
       Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 16)) expr
     else  
-      Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr
+      Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr*)
+      Term.mk_ubv_promote 8 32 expr
+    else if (Type.is_uint16 tt) then
+      Term.mk_ubv_promote 16 32 expr
+    else (*if (Type.is_uint64 tt) then*)
+      Term.mk_ubv_demote 64 32 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.
@@ -1948,7 +1958,7 @@ let eval_to_uint64 expr =
     expr
   else if (Type.is_ubitvector tt) then
     if (Type.is_uint8 tt) then
-      Term.mk_bvconcat 
+      (*Term.mk_bvconcat 
         (Term.mk_bvconcat 
           (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) (Term.mk_bv (Bitvector.zero 16)))
           (Term.mk_bv (Bitvector.zero 8))) 
@@ -1958,7 +1968,12 @@ let eval_to_uint64 expr =
         (Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) (Term.mk_bv (Bitvector.zero 16))) 
         expr
     else  
-      Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) expr
+      Term.mk_bvconcat (Term.mk_bv (Bitvector.zero 32)) expr*)
+      Term.mk_ubv_promote 8 64 expr
+    else if (Type.is_uint16 tt) then
+      Term.mk_ubv_promote 16 64 expr
+    else (*if (Type.is_uint32 tt) then*)
+      Term.mk_ubv_promote 32 64 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.
@@ -2004,7 +2019,13 @@ let eval_to_int8 expr =
   if (Type.is_int8 tt) then
     expr
   else if (Type.is_bitvector tt) then
-    Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr
+    (*Term.mk_bvextract (Numeral.of_int 7) (Numeral.of_int 0) expr*)
+    if (Type.is_int16 tt) then
+      Term.mk_bv_demote 16 8 expr
+    else if (Type.is_int32 tt) then
+      Term.mk_bv_demote 32 8 expr
+    else (*if (Type.is_int64 tt) then*)
+      Term.mk_bv_demote 64 8 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.
@@ -2039,9 +2060,14 @@ let eval_to_int16 expr =
     expr
   else if (Type.is_bitvector tt) then
     if (Type.is_int8 tt) then
-      Term.mk_bvsignext (Numeral.of_int 8) expr
+      (*Term.mk_bvsignext (Numeral.of_int 8) expr
     else 
-      Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr
+      Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr*)
+      Term.mk_bv_promote 8 16 expr
+    else if (Type.is_int32 tt) then
+      Term.mk_bv_demote 32 16 expr
+    else (*if (Type.is_int64 tt) then*)
+      Term.mk_bv_demote 64 16 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.
@@ -2079,11 +2105,16 @@ let eval_to_int32 expr =
     expr
   else if (Type.is_bitvector tt) then
     if (Type.is_int8 tt) then
-      Term.mk_bvsignext (Numeral.of_int 24) expr
+      (*Term.mk_bvsignext (Numeral.of_int 24) expr
     else if (Type.is_int16 tt) then
       Term.mk_bvsignext (Numeral.of_int 16) expr
     else  
-      Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr
+      Term.mk_bvextract (Numeral.of_int 31) (Numeral.of_int 0) expr*)
+      Term.mk_bv_promote 8 32 expr
+    else if (Type.is_int16 tt) then
+      Term.mk_bv_promote 16 32 expr
+    else (*if (Type.is_int64 tt) then*)
+      Term.mk_bv_demote 64 32 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.
@@ -2124,11 +2155,16 @@ let eval_to_int64 expr =
     expr
   else if (Type.is_bitvector tt) then
     if (Type.is_int8 tt) then
-      Term.mk_bvsignext (Numeral.of_int 56) expr
+      (*Term.mk_bvsignext (Numeral.of_int 56) expr
     else if (Type.is_int16 tt) then
       Term.mk_bvsignext (Numeral.of_int 48) expr
     else  
-      Term.mk_bvsignext (Numeral.of_int 32) expr
+      Term.mk_bvsignext (Numeral.of_int 32) expr*)
+      Term.mk_bv_promote 8 64 expr
+    else if (Type.is_int16 tt) then
+      Term.mk_bv_promote 16 64 expr
+    else (*if (Type.is_int32 tt) then*)
+      Term.mk_bv_promote 32 64 expr
     (* We can't do this because a "constant" (u)intN in Lustre, which 
        looks like ((u)intN x) - never is a constant at the term level. 
        It is an application.

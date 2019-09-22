@@ -786,9 +786,13 @@ let rec negate_nnf term = match Term.destruct term with
       | `BVNOT, _
       | `BVOR, _ 
       | `BVAND, _
-      | `BVEXTRACT _, _ 
+      (*| `BVEXTRACT _, _ 
       | `BVCONCAT, _ 
-      | `BVSIGNEXT _ , _ -> assert false 
+      | `BVSIGNEXT _ , _*)
+      | `BV_PROMOTE _, _
+      | `UBV_PROMOTE _, _
+      | `BV_DEMOTE _, _
+      | `UBV_DEMOTE _, _ -> assert false 
     )    
 
   | Term.T.Attr (t, _) -> t
@@ -2341,13 +2345,52 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
                                 (Term.bitvector_of_term a)))
               | _ -> assert false)
 
+          | `UBV_PROMOTE (i, j) -> 
+            (match args with
+              | [] -> assert false 
+              | [BV a] -> (match j with
+                  | 16 -> BV (Term.mk_bv (Bitvector.to_uint16 (Term.bitvector_of_term a)))
+                  | 32 -> BV (Term.mk_bv (Bitvector.to_uint32 (Term.bitvector_of_term a)))
+                  | 64 -> BV (Term.mk_bv (Bitvector.to_uint64 (Term.bitvector_of_term a)))
+                  | _ -> assert false)
+              | _ -> assert false)
+              
+          | `BV_PROMOTE (i, j) -> 
+            (match args with
+              | [] -> assert false 
+              | [BV a] -> (match j with
+                  | 16 -> BV (Term.mk_bv (Bitvector.to_int16 (Term.bitvector_of_term a)))
+                  | 32 -> BV (Term.mk_bv (Bitvector.to_int32 (Term.bitvector_of_term a)))
+                  | 64 -> BV (Term.mk_bv (Bitvector.to_int64 (Term.bitvector_of_term a)))
+                  | _ -> assert false)
+              | _ -> assert false)
+
+          | `UBV_DEMOTE (i, j) -> 
+            (match args with
+              | [] -> assert false 
+              | [BV a] -> (match j with
+                  | 8 -> BV (Term.mk_bv (Bitvector.to_uint8 (Term.bitvector_of_term a)))
+                  | 16 -> BV (Term.mk_bv (Bitvector.to_uint16 (Term.bitvector_of_term a)))
+                  | 32 -> BV (Term.mk_bv (Bitvector.to_uint32 (Term.bitvector_of_term a)))
+                  | _ -> assert false)
+              | _ -> assert false)
+              
+          | `BV_DEMOTE (i, j) -> 
+            (match args with
+              | [] -> assert false 
+              | [BV a] -> (match j with
+                  | 8 -> BV (Term.mk_bv (Bitvector.to_int8 (Term.bitvector_of_term a)))
+                  | 16 -> BV (Term.mk_bv (Bitvector.to_int16 (Term.bitvector_of_term a)))
+                  | 32 -> BV (Term.mk_bv (Bitvector.to_int32 (Term.bitvector_of_term a)))
+                  | _ -> assert false)
+              | _ -> assert false)
           (* Our bitvector library can't do extracts, sign extensions, or concatenations 
              so for these operators, we don't simplify *)
-          | `BVEXTRACT (i, j) -> BV (Term.construct fterm)       
+          (*| `BVEXTRACT (i, j) -> BV (Term.construct fterm)       
 
           | `BVSIGNEXT i -> BV (Term.construct fterm)
 
-          | `BVCONCAT -> BV (Term.construct fterm)
+          | `BVCONCAT -> BV (Term.construct fterm)*)
 
           (* Constant symbols *)
           | `TRUE
