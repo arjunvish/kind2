@@ -217,11 +217,11 @@ let pp_print_value ?as_type ppf v = match v, as_type with
   )
   | Term t, Some ty when Type.is_bitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      Bitvector.pp_print_bitvector ppf (Bitvector.to_signed_int bv)
+      Bitvector.pp_print_machine_integer ppf (Bitvector.to_signed_int bv)
 
   | Term t, Some ty when Type.is_ubitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      Bitvector.pp_print_bitvector ppf bv
+      Bitvector.pp_print_machine_integer ppf bv
 
   | Term t, _ -> (*Type.pp_print_type2 ppf (Term.type_of_term t);*)pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l

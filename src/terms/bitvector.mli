@@ -169,7 +169,12 @@ val gte : t -> t -> bool
 (** Pretty-print a constant bitvector in SMTLIB decimal format *)
 val pp_smtlib_print_bitvector : Format.formatter -> t -> unit
 
+(** Pretty-print a constant bitvector as a numeral *)
 val pp_print_bitvector : Format.formatter -> t -> unit
+
+(** Pretty-print a constant bitvector as a Lustre machine integer *)
+val pp_print_machine_integer : Format.formatter -> t -> unit
+
 
 
 (** {Conversions} *)

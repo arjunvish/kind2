@@ -628,6 +628,18 @@ let pp_print_bitvector ppf b =
   | MInt32 i -> pp_print_string ppf (Stdint.Int32.to_string i)
   | MInt64 i -> pp_print_string ppf (Stdint.Int64.to_string i)
 
+(* Pretty-print a bitvector as a Lustre machine integer *)
+let pp_print_machine_integer ppf b =
+  match b with
+  | MUint8 i -> pp_print_string ppf (String.concat "" ["(uint8 ";(Stdint.Uint8.to_string i);")"])
+  | MUint16 i -> pp_print_string ppf (String.concat "" ["(uint16 ";(Stdint.Uint16.to_string i);")"])
+  | MUint32 i -> pp_print_string ppf (String.concat "" ["(uint32 ";(Stdint.Uint32.to_string i);")"])
+  | MUint64 i -> pp_print_string ppf (String.concat "" ["(uint64 ";(Stdint.Uint64.to_string i);")"])
+  | MInt8 i -> pp_print_string ppf (String.concat "" ["(int8 ";(Stdint.Int8.to_string i);")"])
+  | MInt16 i -> pp_print_string ppf (String.concat "" ["(int16 ";(Stdint.Int16.to_string i);")"])
+  | MInt32 i -> pp_print_string ppf (String.concat "" ["(int32 ";(Stdint.Int32.to_string i);")"])
+  | MInt64 i -> pp_print_string ppf (String.concat "" ["(int64 ";(Stdint.Int64.to_string i);")"])
+
 (* The library printer prints a Uhh or hh suffix to the 
 literals that we dont want
 let pp_print_bitvector ppf b =
