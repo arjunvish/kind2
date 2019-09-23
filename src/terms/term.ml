@@ -1395,13 +1395,13 @@ let mk_bv2nat t = mk_app_of_symbol_node `BV2NAT [t]
 let mk_bv_promote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
 
 (* Hashcons a unary unsigned machine integer to unsigned machine integer cast *)
-let mk_ubv_promote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_ubv_promote i j t = mk_app_of_symbol_node (`UBV_PROMOTE (i, j)) [t]
 
 (* Hashcons a unary signed machine integer to signed machine integer cast *)
-let mk_bv_demote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_bv_demote i j t = mk_app_of_symbol_node (`BV_DEMOTE (i, j)) [t]
 
 (* Hashcons a unary unsigned machine integer to unsigned machine integer cast *)
-let mk_ubv_demote i j t = mk_app_of_symbol_node (`BV_PROMOTE (i, j)) [t]
+let mk_ubv_demote i j t = mk_app_of_symbol_node (`UBV_DEMOTE (i, j)) [t]
 
 (*
 (* Hashcons a BV extraction *)

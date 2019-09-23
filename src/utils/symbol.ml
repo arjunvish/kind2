@@ -480,7 +480,7 @@ let rec pp_print_symbol_node ppf = function
   | `BVSGT -> Format.pp_print_string ppf "bvsgt"
   | `BVSGE -> Format.pp_print_string ppf "bvsge"
   | `BVCONCAT -> Format.pp_print_string ppf "concat"
-  | `UBV_PROMOTE (i, j) ->
+  | `UBV_PROMOTE (i, j) -> Format.printf "symbol.loc1\n";
       let str = (match i with
         | 8 ->
           (match j with
@@ -499,7 +499,7 @@ let rec pp_print_symbol_node ppf = function
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
       Format.pp_print_string ppf str
-  | `BV_PROMOTE (i, j) ->
+  | `BV_PROMOTE (i, j) -> Format.printf "symbol.loc2\n";
       let str = (match i with
         | 8 ->
           (match j with
@@ -518,7 +518,7 @@ let rec pp_print_symbol_node ppf = function
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
       Format.pp_print_string ppf str
-  | `UBV_DEMOTE (i, j) | `BV_DEMOTE (i, j) ->
+  | `UBV_DEMOTE (i, j) | `BV_DEMOTE (i, j) -> Format.printf "symbol.loc3\n";
       let str = (match j with
         | 8 ->
           (match i with

@@ -231,7 +231,6 @@ let string_symbol_list =
    ("bv-sle", Symbol.mk_symbol `BVSLE);
    ("bv-sgt", Symbol.mk_symbol `BVSGT);
    ("bv-sge", Symbol.mk_symbol `BVSGE);
-   ("bv-concat", Symbol.mk_symbol `BVCONCAT);
    (* ("select", Symbol.mk_symbol `SELECT); *)
 
    ("update", Symbol.mk_symbol `STORE)
@@ -371,11 +370,11 @@ let rec pp_print_symbol_node ?arity ppf = function
           | _ -> raise Bitvector.NonStandardBVSize)
         | 16 -> 
           (match i with
-          | 32 | -> "bv-extract 31 0"
+          | 32 | 64 -> "bv-extract 15 0"
           | _ -> raise Bitvector.NonStandardBVSize)
         | 32 ->
           (match i with
-          | 64 -> "bv-extract 63 0"
+          | 64 -> "bv-extract 31 0"
           | _ -> raise Bitvector.NonStandardBVSize)
         | _ -> raise Bitvector.NonStandardBVSize) in
       Format.pp_print_string ppf str 

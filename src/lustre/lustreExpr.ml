@@ -2045,7 +2045,6 @@ let type_of_to_int8 = function
   | t when Type.is_int16 t || Type.is_int32 t || Type.is_int64 t -> Type.t_bv 8
   | _ -> raise Type_mismatch
 
-
 (* Conversion to integer8 *)
 let mk_to_int8 expr = mk_unary eval_to_int8 type_of_to_int8 expr
 
@@ -2060,10 +2059,10 @@ let eval_to_int16 expr =
     expr
   else if (Type.is_bitvector tt) then
     if (Type.is_int8 tt) then
+      Term.mk_bv_promote 8 16 expr
       (*Term.mk_bvsignext (Numeral.of_int 8) expr
     else 
       Term.mk_bvextract (Numeral.of_int 15) (Numeral.of_int 0) expr*)
-      Term.mk_bv_promote 8 16 expr
     else if (Type.is_int32 tt) then
       Term.mk_bv_demote 32 16 expr
     else (*if (Type.is_int64 tt) then*)
