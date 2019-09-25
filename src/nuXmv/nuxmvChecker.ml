@@ -537,12 +537,14 @@ let rec t_eval_expr (in_enum : (bool * env)) (env : env) (expr: A.nuxmv_expr)  :
         match result with
         | Some e -> e
         | None -> Ok (SetT (List.map (fun x -> match x with Ok t -> t | _ -> assert false) mapped)))
+    (* For case expressions we check each left expression to make sure it returns a bool *)
     | A.CaseExp (p, el) -> (
         let left_expr_res = List.map (t_eval_expr (false, []) env) (List.map fst el) in
         match find_opt (fun x -> match x with Ok BoolT -> false | _ -> true) left_expr_res with
         | Some (Error e) -> Error e
         | Some (Ok t) -> Error (Expected (p, [BoolT], t))
         | None -> (
+            (* Then we check if any right expression gives us back a set becuase then we make sure all other right expressions also give a set back*)
             let right_expr_res = List.map (t_eval_expr in_enum env) (List.map snd el) in 
             match find_opt (fun x -> match x with Ok _ -> false | _ -> true) right_expr_res with
             | Some (Error e) -> Error e
@@ -782,7 +784,6 @@ let rec t_eval_state_var_decl (env : env) (svdl: A.state_var_decl list) (mod_def
         )
         | A.SimpleType (p, i, sts) -> 
             (match sts with
-                (* TODO: Check that the identifier isn't being used already *)
                 | A.Bool _ -> (
                     match lookup_opt i env with
                     | Some _ -> Error (VariableAlreadyDefined (p, i))

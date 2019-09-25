@@ -10,10 +10,15 @@
    permissions and limitations under the License. 
 *)
 
-(** @author Andrew West *)
+(** Semantic and type checker for the NuXmv input language
+
+
+    @author Andrew West *)
+
 module A = NuxmvAst
 
-
+(** {1 Errors } *)
+(** Semantic check errors *)
 type semantic_error_type = 
     | LtlUse of Position.t
     | NextExpr of Position.t
@@ -21,19 +26,12 @@ type semantic_error_type =
     | RangeLowerValue of Position.t
     | NotSupported of Position.t * string
 
-type nuxmv_ast_type = 
-    | IntT
-    | SymbolicT
-    | FloatT
-    | EnumT of (string * nuxmv_ast_type) list
-    | ArrayT of nuxmv_ast_type list
-    | BoolT
-    | SetT of nuxmv_ast_type list
-    (* | FunT of nuxmv_ast_type list * nuxmv_ast_type *)
-    | ModuleInstance of string * env
+(** Semantic check result *)
+type 'a check_result = 
+    | CheckOk
+    | CheckError of 'a
 
-and env = (string * nuxmv_ast_type) list
-
+(** Type check errors *)    
 type type_error =
     | Expected of Position.t * nuxmv_ast_type list * nuxmv_ast_type
     | NonMatching of Position.t * nuxmv_ast_type * nuxmv_ast_type
@@ -48,10 +46,27 @@ type type_error =
     | AccessOperatorAppliedToNonModule of Position.t
     | MainModuleHasParams of Position.t
 
-type 'a check_result = 
-    | CheckOk
-    | CheckError of 'a
 
+(** {1 Environment} *)
+and env = (string * nuxmv_ast_type) list
+
+(** Types used in the environment  *)
+and nuxmv_ast_type = 
+    | IntT
+    | SymbolicT
+    | FloatT
+    | EnumT of (string * nuxmv_ast_type) list
+    | ArrayT of nuxmv_ast_type list
+    | BoolT
+    | SetT of nuxmv_ast_type list
+    (* | FunT of nuxmv_ast_type list * nuxmv_ast_type *)
+    | ModuleInstance of string * env
+
+
+(** {1 Langauge-checks} *)
+(** Semantic check for NuXmv program abstract syntax *)
 val semantic_eval: NuxmvAst.t ->  semantic_error_type check_result
 
+
+(** Type check for NuXmv program abstract syntax *)
 val type_eval : NuxmvAst.t -> (env,type_error) result

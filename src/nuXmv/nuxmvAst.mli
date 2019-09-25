@@ -14,11 +14,48 @@
 
 *)
 
-(* @author Andrew West*)
+(** Minimally simplified NuXmv abstract syntax tree
 
+    The types in this module closely represent the abstract syntax of
+    NuXmv. No type checking or simplification is performed when
+    constructing the abstract syntax tree, this is done when passing the
+    abstract syntax through {!NuxmvChecker}. 
+
+    Some values are reserved for future use and will cause the
+    translation to intermediate Lustre to fail.
+
+    A NuXmv file is parsed into a {!module} list, where a
+    module is composed of different {!elements}
+
+    - state variable declaration [VAR]
+    - internal variable definition [DEFINE]
+    - assign constraints [ASSIGN]
+    - init constraints [INIT]
+    - transition constraints [TRANS]
+    - invar property constraint [INVAR]
+    - liveliness property specification [LTLSPEC]
+
+    Almost all types are annotated with the position in the input file
+    for better error reporting in the translation.
+
+    @author Andrew West *)
+
+(** {1 Types} *)
+
+(** An identifier *)
 type ident = string
 
-type nuxmv_expr = 
+(** A NuXmv Expression *)
+(* This expr_type is for specifying what different operations are allowed in the 
+    expression and encapsulates NuXmv expressions *)
+type expr_type = 
+    | LtlExpr of Position.t * nuxmv_expr
+    | InvarExpr of Position.t * nuxmv_expr
+    | NextExpr of Position.t * nuxmv_expr
+    | SimpleExpr of Position.t * nuxmv_expr
+    | ArrayExpr of Position.t * expr_type list
+
+and nuxmv_expr = 
     | True of Position.t
     | False of Position.t
     | CInt of Position.t * Numeral.t
@@ -62,6 +99,7 @@ type nuxmv_expr =
     | Since of Position.t * nuxmv_expr * nuxmv_expr
     | Triggered of Position.t * nuxmv_expr * nuxmv_expr
 
+(** A complex identifier for multiple modules *)
 and comp_ident = 
     | CIdent of Position.t * ident
     | PerIdent of Position.t * comp_ident * ident
@@ -69,42 +107,48 @@ and comp_ident =
         | BrackIdent of Position.t * comp_ident * expr_type
         | Self of Position.t 
     *)
-    
-type expr_type = 
-    | LtlExpr of Position.t * nuxmv_expr
-    | InvarExpr of Position.t * nuxmv_expr
-    | NextExpr of Position.t * nuxmv_expr
-    | SimpleExpr of Position.t * nuxmv_expr
-    | ArrayExpr of Position.t * expr_type list
+(** {1 Elements} *)
+(** State variable declaraion specified with simple type or as a module *)
+type state_var_decl =
+    | SimpleType of Position.t * ident * simple_type_spec
+    | ModuleType of Position.t * ident * module_type_specifier
 
-type enum_type_value = 
-    | ETId of Position.t * ident
-    | ETCInt of Position.t * Numeral.t
+(** Module type specified by the module identifier and expression list of params *)
+and module_type_specifier = 
+    | ModuleTypeSpecifier of Position.t * ident * expr_type list
 
-type simple_type_spec = 
+
+(** Simple NuXmv types *)
+and simple_type_spec = 
     | Bool of Position.t
     | Int of Position.t
     | Real of Position.t
     | IntRange of Position.t * Numeral.t * Numeral.t
     | EnumType of Position.t * (enum_type_value) list 
 
-type module_type_specifier = 
-    | ModuleTypeSpecifier of Position.t * ident * expr_type list
+and enum_type_value = 
+    | ETId of Position.t * ident
+    | ETCInt of Position.t * Numeral.t
 
-type state_var_decl =
-    | SimpleType of Position.t * ident * simple_type_spec
-    | ModuleType of Position.t * ident * module_type_specifier
-
+(** Define declarations are either simple or an array 
+    definition with an identifier and an expression type *)
 type define_element = 
     | SimpleDef of Position.t * ident * expr_type
     | ArrayDef of Position.t * ident * expr_type
 
+(** Assign constraint *)
 type assign_const = 
     | InitAssign of Position.t * ident * expr_type 
     | NextAssign of Position.t * ident * expr_type 
     | Assign of Position.t * ident * expr_type 
 
-type module_element = 
+(** {1 Module} *)
+(** A NuXmv module of a module identifier, a parameter variable list, 
+    and a list of module elements *)
+type nuxmv_module = 
+    | CustomModule of ident * ident list * module_element list
+
+and module_element = 
     | StateVarDecl of Position.t * state_var_decl list
     | DefineDecl of Position.t * define_element list
     | AssignConst of Position.t * assign_const list
@@ -113,10 +157,6 @@ type module_element =
     | InvarConst of Position.t * expr_type 
     | LtlSpec of Position.t * expr_type
 
-type nuxmv_module = 
-    | CustomModule of ident * ident list * module_element list
-
+(** A NuXmv program as a list of module specifications *)
 type t = nuxmv_module list
-
-val print_program : t -> string
 
