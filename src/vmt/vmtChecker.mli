@@ -10,8 +10,12 @@
    permissions and limitations under the License. 
 *)
 
-(** @author Andrew West *)
+(** Semantic and type checker for the Vmt input language
 
+
+    @author Andrew West *)
+
+(** Possible semantic or type errors in the Vmt input file *)
 type vmt_error = 
     | IdentifierAlreadyExists of Position.t * string
     | InvalidArgCount of Position.t * int * int
@@ -24,4 +28,5 @@ type vmt_error =
     | NonMatchingTypes of Position.t * string * string
     | NotSupported of Position.t * string
 
+(** Both semantic and type checking is done at the same time *)
 val check_vmt : VmtAst.t -> (VmtAst.t, vmt_error) result

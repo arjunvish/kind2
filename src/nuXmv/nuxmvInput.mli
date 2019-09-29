@@ -29,14 +29,14 @@
     The main function {!of_file} of this module returns a system for
     the analysis strategies that can be turned into an internal
     transition system {!TransSys} by using functions in
-    {!LustreTransSys} with relevant parameters.
+    {!NumvTransSys} with relevant parameters.
 
     The whole input file is parsed and type checked first, then one
     module is designated as the main node. The returned {!Subsystem.t}
     has this main node at the top, and all called nodes as
     children. Nodes that are in the input file, but not called by the
     main node are discarded. No further cone of influence reduction is
-    peformed yet, this happens only in {!LustreTransSys} when the
+    peformed yet, this happens only in {!NuxmvTransSys} when the
     parameters of the analysis are known.
 
     The main node is chosen to be, in order of precedence:

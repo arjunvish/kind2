@@ -21,9 +21,6 @@
     constructing the abstract syntax tree, this is done when passing the
     abstract syntax through {!NuxmvChecker}. 
 
-    Some values are reserved for future use and will cause the
-    translation to intermediate Lustre to fail.
-
     A NuXmv file is parsed into a {!module} list, where a
     module is composed of different {!elements}
 

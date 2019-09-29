@@ -14,10 +14,46 @@
 
 *)
 
-(* @author Andrew West*)
+(** Minimally simplified Vmt abstract syntax tree
+
+    The types in this module closely represent the abstract syntax of
+    Vmt files. No type checking or simplification is performed when
+    constructing the abstract syntax tree, this is done when passing the
+    abstract syntax through {!VmtChecker}. 
+
+    A Vmt file is parsed into a {!expr} list.
+
+    - Declare function (DeclareFun)
+    - Define function (DefineFun), and each one has a term
+      associated to it.
+    - Declar Sort (DeclareSort)
+    - Define Sort (DefineSort)
+    - Set Logic (SetLogic)
+    - Set Option (SetOption)
+    - Assert
+
+    Almost all types are annotated with the position in the input file
+    for better error reporting in the translation.
+
+    @author Andrew West *)
+
+(** {1 Types} *)
 
 type ident = string
 
+(** Vmt defined sorts (allows ambiguous tyes as well) *)
+type sort = 
+    | BoolType of Position.t
+    | IntType of Position.t
+    | RealType of Position.t
+    | BitVecType of Position.t * Numeral.t
+    | AmbiguousType of Position.t * string
+    | MultiSort of Position.t * sort * sort list
+
+type sorted_var = 
+    | SortedVar of Position.t * ident * sort
+
+(** Possible attribute types used in Vmt *)
 type attribute = 
     | NextName of Position.t * ident
     | InitTrue of Position.t
@@ -25,6 +61,7 @@ type attribute =
     | InvarProperty of Position.t * Numeral.t
     | LiveProperty of Position.t * Numeral.t
 
+(** Possible terms for the define function expression *)
 type param = 
     | VarBind of Position.t * string * term
 
@@ -40,17 +77,9 @@ and term =
     | AttributeTerm of Position.t * term * attribute list
     | Let of Position.t * param list * term
 
-type sort = 
-    | BoolType of Position.t
-    | IntType of Position.t
-    | RealType of Position.t
-    | BitVecType of Position.t * Numeral.t
-    | AmbiguousType of Position.t * string
-    | MultiSort of Position.t * sort * sort list
+(** {1 Expr} *)
 
-type sorted_var = 
-    | SortedVar of Position.t * ident * sort
-
+(** Vmt expressions *)
 type vmt_expr = 
     | DeclareFun of Position.t * ident * sort list * sort
     | DefineFun of Position.t * ident * sorted_var list * sort * term
@@ -60,4 +89,5 @@ type vmt_expr =
     | SetOption of Position.t * ident * attribute
     | Assert of Position.t * term
 
+(** A Vmt program as a list of exprssion specifications *)
 type t = vmt_expr list

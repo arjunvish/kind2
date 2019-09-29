@@ -19,5 +19,6 @@
 
 exception Unexpected_Char of char
 
+(** Entry point for the lexer *)
 val token: Lexing.lexbuf -> NuxmvParser.token
 

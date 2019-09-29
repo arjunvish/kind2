@@ -14,7 +14,9 @@
 
 *)
 
-(** @author Andrew West *)
+(** Position module to be used by additions made by author.
+
+    @author Andrew West *)
 
 type t = { fname : string; line: int; col: int }
 
