@@ -162,7 +162,7 @@ let add (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.add i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.add i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.add i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "add\n";raise UnequalBVs
 
 (* Subtraction *)
 let sub (x : t) (y : t) : t =
@@ -175,7 +175,7 @@ let sub (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.sub i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.sub i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.sub i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "sub\n";raise UnequalBVs
 
 (* Multiplication *)
 let mul (x : t) (y : t) : t =
@@ -188,7 +188,7 @@ let mul (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.mul i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.mul i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.mul i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "mul\n";raise UnequalBVs
 
 (* Division *)
 (* Raises Division_by_zero exception if second argument is zero *)
@@ -202,7 +202,7 @@ let div (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.div i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.div i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.div i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "div\n";raise UnequalBVs
 
 (* Remainder *)
 (* Raises Division_by_zero exception if second argument is zero *)
@@ -216,7 +216,7 @@ let rem (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.rem i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.rem i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.rem i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "rem\n";raise UnequalBVs
 
 (* Negation *)
 let neg (x : t) : t =
@@ -246,7 +246,7 @@ let logand (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logand i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logand i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logand i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "and\n";raise UnequalBVs
 
 (* Bitwise or *)
 let logor (x : t) (y : t) : t =
@@ -259,7 +259,7 @@ let logor (x : t) (y : t) : t =
     | MInt16 i, MInt16 j -> MInt16 (Stdint.Int16.logor i j)
     | MInt32 i, MInt32 j -> MInt32 (Stdint.Int32.logor i j)
     | MInt64 i, MInt64 j -> MInt64 (Stdint.Int64.logor i j)
-    | _ -> raise UnequalBVs
+    | _ -> Format.printf "or\n";raise UnequalBVs
 
 (* Bitwise not *)
 let lognot (x : t) : t =
@@ -461,7 +461,7 @@ let bvshl (x : t) (y : t) : t =
       else
         MInt64 (Stdint.Int64.shift_left i (Stdint.Uint64.to_int j))
 
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "shl\n";raise UnequalBVs
 
 
 (* Shift right *)
@@ -527,7 +527,7 @@ let bvshr (x : t) (y : t) : t =
       else
         MInt64 (Stdint.Int64.shift_right i (Stdint.Uint64.to_int j))
   
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "shr\n";raise UnequalBVs
 
 
 (* ********************************************************************** *)
@@ -545,7 +545,7 @@ let equal (x : t) (y : t) : bool =
   | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j = 0)
   | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j = 0)
   | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j = 0)
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "eq\n";raise UnequalBVs
 
 (* Less than *)
 let lt (x : t) (y : t) : bool = 
@@ -558,7 +558,7 @@ let lt (x : t) (y : t) : bool =
   | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j < 0)
   | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j < 0)
   | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j < 0)
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "lt\n";raise UnequalBVs
 
 (* Greater than *)
 let gt (x : t) (y : t) : bool = 
@@ -571,7 +571,7 @@ let gt (x : t) (y : t) : bool =
   | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j > 0)
   | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j > 0)
   | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j > 0)
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "gt\n";raise UnequalBVs
 
 (* Less than or equal to *)
 let lte (x : t) (y : t) : bool = 
@@ -584,10 +584,10 @@ let lte (x : t) (y : t) : bool =
   | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j <= 0)
   | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j <= 0)
   | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j <= 0)
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "lte\n";raise UnequalBVs
 
 (* Greater than or equal to *)
-let gte (x : t) (y : t) : bool = 
+(*let gte (x : t) (y : t) : bool = 
   match x, y with
   | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j >= 0)
   | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j >= 0)
@@ -597,7 +597,7 @@ let gte (x : t) (y : t) : bool =
   | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j >= 0)
   | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j >= 0)
   | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j >= 0)
-  | _, _ -> raise UnequalBVs
+  | _, _ -> Format.printf "gte\n";raise UnequalBVs*)
 
 
 (* ********************************************************************** *)
@@ -851,6 +851,17 @@ let is_signed (b : t) : bool =
   | MInt8 _ | MInt16 _ | MInt32 _ | MInt64 _ -> true
   | _ -> false
 
+let gte (x : t) (y : t) : bool = 
+  match x, y with
+  | MUint8 i, MUint8 j -> (Stdint.Uint8.compare i j >= 0)
+  | MUint16 i, MUint16 j -> (Stdint.Uint16.compare i j >= 0)
+  | MUint32 i, MUint32 j -> (Stdint.Uint32.compare i j >= 0)
+  | MUint64 i, MUint64 j -> (Stdint.Uint64.compare i j >= 0)
+  | MInt8 i, MInt8 j -> (Stdint.Int8.compare i j >= 0)
+  | MInt16 i, MInt16 j -> (Stdint.Int16.compare i j >= 0)
+  | MInt32 i, MInt32 j -> (Stdint.Int32.compare i j >= 0)
+  | MInt64 i, MInt64 j -> (Stdint.Int64.compare i j >= 0)
+  | _, _ -> raise UnequalBVs
 
 (* ********************************************************************** *)
 (* Infix operators                                                        *)

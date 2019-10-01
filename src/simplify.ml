@@ -1232,11 +1232,18 @@ let rec simplify_term_node default_of_var uf_defs model fterm args =
              differentiate between signed and unsigned BV types. We 
              do it here before simplifying the model *)
           let v'' = 
-            (if ((Type.is_bitvector (Var.type_of_var v)) || 
-                 (Type.is_ubitvector (Var.type_of_var v))) then
+            (if (Type.is_bitvector (Var.type_of_var v)) then
+                Term.mk_bv (Bitvector.to_signed_int (Term.bitvector_of_term v'))
+             else if (Type.is_ubitvector (Var.type_of_var v)) then
                 Term.mk_bv (Term.bitvector_of_term v')
              else
               v')
+
+              (*if ((Type.is_bitvector (Var.type_of_var v)) || 
+                 (Type.is_ubitvector (Var.type_of_var v))) then
+                Term.mk_bv (Term.bitvector_of_term v')
+             else
+              v')*)
           in
             Term.eval_t
               (simplify_term_node default_of_var uf_defs model)
