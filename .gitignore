@@ -47,6 +47,14 @@ configure
 ocamlczmq/{include,lib}
 ocamlczmq/src/.libs
 ocamlczmq
-src/.DS_Store
-*.smt2
-.DS_Store
+
+# Generated documentation
+doc/usr/build/**
+doc/user_documentation.pdf
+
+# VSCode config files
+.vscode/
+
+# GitHub deploy key
+travis_key
+travis_key.pub

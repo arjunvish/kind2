@@ -127,7 +127,6 @@ function run_in {
   work_dir="$1"
   shift
   kind2_cmd="$@"
-
   # Falsifiable
   find_cmd=`find_tests $work_dir $falsifiable_dir`
   file_count=`eval $find_cmd | wc -l | tr -d ' '`

@@ -180,7 +180,7 @@ let rec map_to_array_model m =
   |> MIL.fold add_at_indexes m
 
 
-let rec pp_print_array_model top_level ppf index it =
+let rec pp_print_array_model_as_xml top_level ppf index it =
   if not top_level then
     Format.fprintf ppf "@[<hv 2><Item index=\"%d\">@," index;
   begin match it with
@@ -190,7 +190,7 @@ let rec pp_print_array_model top_level ppf index it =
     Format.fprintf ppf
       "@[<hv 2><Array size=\"%d\">@,%a@;<0 -2></Array>@]"
       s
-      (pp_print_listi (pp_print_array_model false) "@,") (Array.to_list a)
+      (pp_print_listi (pp_print_array_model_as_xml false) "@,") (Array.to_list a)
   end;
   if not top_level then Format.fprintf ppf "@;<0 -2></Item>@]"
 
@@ -198,7 +198,20 @@ let rec pp_print_array_model top_level ppf index it =
 (* Show map as xml in counteexamples *)
 let pp_print_map_as_xml ppf m =
   let arm = map_to_array_model m in
-  pp_print_array_model true ppf 0 arm
+  pp_print_array_model_as_xml true ppf 0 arm
+
+let rec pp_print_array_model_as_json ppf _ it = 
+  match it with
+  | ItemArray (s, a) -> (
+    Format.fprintf ppf "[%a]"
+      (pp_print_listi pp_print_array_model_as_json ", ") (Array.to_list a)
+  )
+  | ItemValue v ->
+    Format.fprintf ppf "%a" pp_print_term v
+
+let pp_print_map_as_json ppf m =
+  let arm = map_to_array_model m in
+  pp_print_array_model_as_json ppf 0 arm
 
 
 (* Print a value of the model *)  
@@ -217,25 +230,11 @@ let pp_print_value ?as_type ppf v = match v, as_type with
   )
   | Term t, Some ty when Type.is_bitvector ty -> 
     let bv = Term.bitvector_of_term t in
-      let s = Bitvector.length_of_bitvector bv in
-        let bv_num = (match s with 
-        | 8 -> Bitvector.bv8_to_num bv
-        | 16 -> Bitvector.bv16_to_num bv
-        | 32 -> Bitvector.bv32_to_num bv
-        | 64 -> Bitvector.bv64_to_num bv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
-          Numeral.pp_print_numeral ppf bv_num
+      Bitvector.pp_print_signed_machine_integer ppf bv
 
   | Term t, Some ty when Type.is_ubitvector ty ->
     let ubv = Term.bitvector_of_term t in
-      let s = Bitvector.length_of_bitvector ubv in
-        let ubv_num = (match s with 
-        | 8 -> Bitvector.ubv8_to_num ubv
-        | 16 -> Bitvector.ubv16_to_num ubv
-        | 32 -> Bitvector.ubv32_to_num ubv
-        | 64 -> Bitvector.ubv64_to_num ubv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
-          Numeral.pp_print_numeral ppf ubv_num
+      Bitvector.pp_print_unsigned_machine_integer ppf ubv
 
   | Term t, _ -> (*Type.pp_print_type2 ppf (Term.type_of_term t);*)pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l
@@ -255,7 +254,7 @@ let pp_print_value_xml ?as_type ppf v =  match v, as_type with
         | 16 -> Bitvector.bv16_to_num bv
         | 32 -> Bitvector.bv32_to_num bv
         | 64 -> Bitvector.bv64_to_num bv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
+        | _ -> raise LustreExpr.Type_mismatch) in
           Numeral.pp_print_numeral ppf bv_num
   | Term t, Some ty when Type.is_ubitvector ty ->
     let ubv = Term.bitvector_of_term t in
@@ -265,7 +264,7 @@ let pp_print_value_xml ?as_type ppf v =  match v, as_type with
         | 16 -> Bitvector.ubv16_to_num ubv
         | 32 -> Bitvector.ubv32_to_num ubv
         | 64 -> Bitvector.ubv64_to_num ubv
-        | _ -> raise LustreExpr.BV_size_mismatch) in
+        | _ -> raise LustreExpr.Type_mismatch) in
           Numeral.pp_print_numeral ppf ubv_num
   | Term t, _ -> pp_print_term ppf t
   | Lambda l, _ -> Term.pp_print_lambda ppf l
@@ -274,6 +273,15 @@ let pp_print_value_xml ?as_type ppf v =  match v, as_type with
       pp_print_map_as_xml ppf m
     with Not_found -> ()
 
+let pp_print_value_json ?as_type ppf v =  match v, as_type with
+  | Term t, Some ty when Term.is_numeral t && Type.is_enum ty ->
+    Format.fprintf ppf "\"%s\"" (Type.get_constr_of_num (Term.numeral_of_term t))
+  | Term t, _ -> pp_print_term ppf t
+  | Lambda l, _ -> Term.pp_print_lambda ppf l
+  | Map m, _ ->
+    try
+      pp_print_map_as_json ppf m
+    with Not_found -> ()
 
 (* Pretty-print a model *)
 let pp_print_model ppf model = 

@@ -26,11 +26,11 @@
 (** Constant bitvector *)
 type t
 
+(** Return the length of a bitvector as a numeral *)
+val length_of_bitvector : t -> int
+
 (** Return bitvector resulting from repeating input bit b, (input) n times *)
 val repeat_bit : bool -> int -> t
-
-(** Return the first bit of input bitvector b *)
-val first_bit : t -> bool
 
 (** Return bits m down to n from the input bitvector *)
 val bvextract : int -> int -> t -> t
@@ -254,17 +254,6 @@ val bv_rsh : t -> t -> t
 val bv_arsh : t -> t -> t
 
 
-(** {Unused} 
-@author Arjun Viswanathan*)
-
-(** Function that inputs a list of bitvectors and returns an Some n
-   if all bitvectors have size n, where n = 8,16,32,64, and None otherwise 
-   Special case: it returns None for the input of an empty list of BVs.
-   Used to check if non-unary BV operators operate on uniformly sized and
-   validly sized inputs *)
-val check_bv_uniform : t list -> int option
-
-
 (** {Pretty Printing} *)
 (** Pretty-print a constant bitvector in SMTLIB binary format *)
 val pp_smtlib_print_bitvector_b : Format.formatter -> t -> unit
@@ -277,6 +266,12 @@ val pp_yices_print_bitvector_b : Format.formatter -> t -> unit
 
 (** Pretty-print a constant bitvector in Yices' binary format given the decimal value and size *)
 val pp_yices_print_bitvector_d : Format.formatter -> Numeral.t -> Numeral.t -> unit
+
+(** Pretty-print a constant unsigned bitvector as a Lustre machine integer *)
+val pp_print_unsigned_machine_integer : Format.formatter -> t -> unit
+
+(** Pretty-print a constant signed bitvector as a Lustre machine integer *)
+val pp_print_signed_machine_integer : Format.formatter -> t -> unit
 
 (** Pretty-print a constant bitvector in hexadeciaml format *)
 val pp_print_bitvector_x : Format.formatter -> t -> unit
@@ -295,9 +290,6 @@ val bitvector_of_hstring : HString.t -> t
 (** Convert a hashconsed string to a Boolean value *)
 val bool_of_hstring : HString.t -> bool
 
-(** Return the length of a bitvector as a numeral *)
-val length_of_bitvector : t -> int
-
 
 (** {Infix Comparison Operators} *)
 (** Equality *)
@@ -314,3 +306,8 @@ val ( <= ) : t -> t -> bool
 
 (** Signed greater than or equal to *)
 val ( >= ) : t -> t -> bool
+
+
+(** {Unused Functions} *)
+(** Return the first bit of input bitvector b *)
+val first_bit : t -> bool
