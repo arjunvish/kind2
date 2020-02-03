@@ -288,7 +288,11 @@ let trans_sys_of_vmt
         |> List.hd
     in
 
-    let sort_map = filter_map (fun x -> match x with | Ast.DefineSort (_, ident, _, sort) -> Some (ident, sort) | _ -> None) expr_list in
+    let sort_map = filter_map 
+        (fun x -> match x with 
+            | Ast.DefineSort (_, ident, _, sort) -> Some (ident, sort) 
+            | _ -> None) 
+        expr_list in
 
     let scope = ["Main"] in (* TODO: determine how to get the name for the scope *)
 

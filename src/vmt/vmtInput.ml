@@ -50,7 +50,8 @@ let parse_buffer lexbuf : (output, parse_error) result =
         | VmtChecker.InvalidArgCount (pos, i1, i2) -> InvalidArgCount (pos, i1, i2)
         | VmtChecker.InvalidOperator (pos, str) -> InvalidOperator (pos, str)
         | VmtChecker.InvalidType (pos, str) -> InvalidType (pos, str)
-        | VmtChecker.InvalidTypeWithOperator (pos, str1, str2) -> InvalidTypeWithOperator (pos, str1, str2)
+        | VmtChecker.InvalidTypeWithOperator (pos, str1, str2) -> 
+            InvalidTypeWithOperator (pos, str1, str2)
         | VmtChecker.MissingAttribute pos -> MissingAttribute pos
         | VmtChecker.MissingIdentifier (pos, str) -> MissingIdentifier (pos, str)
         | VmtChecker.MissingTerm pos -> MissingTerm pos
@@ -79,11 +80,13 @@ let from_file filename =
 
 let of_file filename = 
   match from_file filename with
-  | Ok res -> { SubSystem.scope = ["Main"] ; source = res ; has_contract = false ; has_modes = false ; has_impl = false ; subsystems = [] }
+  | Ok res -> { SubSystem.scope = ["Main"] ; source = res ; has_contract = false ; 
+                has_modes = false ; has_impl = false ; subsystems = [] }
   | Error error ->(
     match error with
     | UnexpectedChar (pos, char) -> (
-      fail_at_position_pt pos ("unexpected character ‘"^ (String.make 1 char) ^ "’") 
+      fail_at_position_pt pos 
+        ("unexpected character ‘"^ (String.make 1 char) ^ "’") 
       ; raise (Parser_error)
     )
     | SyntaxError (pos) -> (
@@ -91,11 +94,13 @@ let of_file filename =
       ; raise (Parser_error)
     )
     | IdentifierAlreadyExists (pos, str) -> (
-      fail_at_position_pt pos ("Identifier " ^ str ^ " already exists in the scope")
+      fail_at_position_pt pos 
+        ("Identifier " ^ str ^ " already exists in the scope")
       ; raise (Parser_error)
     )
     | InvalidArgCount (pos, i1, i2) -> (
-      fail_at_position_pt pos ("Invalid argument count ("^string_of_int i2^"given but "^string_of_int i1^" expected)")
+      fail_at_position_pt pos ("Invalid argument count 
+        ("^string_of_int i2^"given but "^string_of_int i1^" expected)")
       ; raise (Parser_error)
     )
     | InvalidOperator (pos, str) -> (
@@ -107,11 +112,13 @@ let of_file filename =
       ; raise (Parser_error)
     )
     | InvalidTypeWithOperator (pos, str1, str2) -> (
-      fail_at_position_pt pos ("Operator '"^str2^"' doesn't support type '"^str1^"'")
+      fail_at_position_pt pos 
+        ("Operator '"^str2^"' doesn't support type '"^str1^"'")
       ; raise (Parser_error)
     )
     | MissingAttribute pos -> (
-      fail_at_position_pt pos "Attribute is required when using (! term attribute_list)"
+      fail_at_position_pt pos 
+        ("Attribute is required when using (! term attribute_list)")
       ; raise (Parser_error)
     )
     | MissingIdentifier (pos, str) -> (
@@ -123,11 +130,13 @@ let of_file filename =
       ; raise (Parser_error)
     )
     | NonMatchingTypes (pos, str1, str2) -> (
-      fail_at_position_pt pos ("Types '"^str1^"' and '"^str2^"' don't match in the expression")
+      fail_at_position_pt pos 
+        ("Types '"^str1^"' and '"^str2^"' don't match in the expression")
       ; raise (Parser_error)
     )
     | NotSupported (pos, str) -> (
-      fail_at_position_pt pos ("Functionality '"^str^"' is parable but not supported")
+      fail_at_position_pt pos 
+        ("Functionality '"^str^"' is parable but not supported")
       ; raise (Parser_error)
     )
   ) 

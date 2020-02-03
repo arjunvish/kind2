@@ -24,19 +24,19 @@
 
     Then the state variables are determined by looking through
     the expressions and locating all the DefineFun expressions
-    that contained an attribute term in them with the attribute 
-    next. After figuring out which varaibles in the file were 
-    next vars, the state var isntance map was created to replace
+    that contain an attribute term in them with the attribute 
+    'next'. After figuring out which variables in the file are 
+    'next' vars, the state var instance map is created to replace
     all instances of these state vars with the corresponding
-    instance value. This also generated the list of state vars
+    instance value. This also generats the list of state vars
     for the translation.
 
-    Following this, the init and trans term were generated.
-    This was done by locating the DefineFun which contained
+    Following this, the init and trans term are generated.
+    This is done by locating the DefineFun which contained
     the attribute init true or trans true respectively. After 
-    this expression was found, each variable instance was 
+    this expression is found, each variable instance is 
     replaced by the correct term to generate one long expression
-    for both the init and trans term. The same was done for the
+    for both the init and trans term. The same is done for the
     properties, but trying to locate the attribute terms 
     for the properties.
 

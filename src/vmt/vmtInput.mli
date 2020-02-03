@@ -17,7 +17,7 @@
 (** Parse Vmt input into the internal Kind2 transitional system 
 
     An OCamllex lexer in {!VmtLexer} and a Menhir parser in
-    {!VmtParser} take the input and produce a sinlge {!VmtAst.t}
+    {!VmtParser} take the input and produce a single {!VmtAst.t}
     value, which is a minimally processed representation of a Lustre
     AST.
 

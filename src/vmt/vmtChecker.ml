@@ -47,14 +47,6 @@ let find_opt (func : ('a -> bool)) (lst: 'a list) : 'a option =
     try let ans = List.find func lst in Some ans
     with Not_found -> None
 
-let rec compare_lists l ll = 
-match (l,ll) with
-| [], [] -> true
-| [],_ -> false
-| _,[] -> false
-| (h::t), (hh::tt) -> if h = hh then compare_lists t tt
-                      else false;;
-
 let rec eval_sort sort sort_env =
     match sort with
     | A.AmbiguousType (pos, str) -> (
